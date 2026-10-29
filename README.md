@@ -217,3 +217,4 @@ Sistem memuat 36 skenario pengujian ketat (*36 Test Cases*) yang memverifikasi i
    - `DB_URL=postgresql://...`
    - `FRONTEND_URL=https://maisonaster.vercel.app`
 3. Jalankan `php artisan migrate --force` dan seeder baseline.
+
