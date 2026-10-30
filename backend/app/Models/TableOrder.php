@@ -57,3 +57,4 @@ class TableOrder extends Model
             ->where('source_doc_type', 'Table Order');
     }
 }
+

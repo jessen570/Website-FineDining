@@ -22,3 +22,4 @@ class Location extends Model
         return $this->hasMany(StockLevel::class, 'location_code', 'location_code');
     }
 }
+

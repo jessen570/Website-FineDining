@@ -66,3 +66,4 @@ class Booking extends Model
             ->first();
     }
 }
+

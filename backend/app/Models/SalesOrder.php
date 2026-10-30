@@ -58,3 +58,4 @@ class SalesOrder extends Model
             ->where('source_doc_type', 'Sales Order');
     }
 }
+

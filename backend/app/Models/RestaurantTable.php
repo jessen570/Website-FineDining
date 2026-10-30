@@ -22,3 +22,4 @@ class RestaurantTable extends Model
         return $this->hasMany(Booking::class, 'table_id', 'table_id');
     }
 }
+

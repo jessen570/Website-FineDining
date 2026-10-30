@@ -51,3 +51,4 @@ class PurchaseOrder extends Model
             ->where('source_doc_type', 'Purchase Order');
     }
 }
+

@@ -25,3 +25,4 @@ class CrmLead extends Model
         'is_converted' => 'boolean',
     ];
 }
+

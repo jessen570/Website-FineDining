@@ -21,3 +21,4 @@ class ChartOfAccount extends Model
         return $this->hasMany(JournalItem::class, 'account_code', 'account_code');
     }
 }
+

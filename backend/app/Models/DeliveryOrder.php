@@ -37,3 +37,4 @@ class DeliveryOrder extends Model
         return $this->hasMany(DeliveryOrderLine::class, 'delivery_id', 'delivery_id');
     }
 }
+

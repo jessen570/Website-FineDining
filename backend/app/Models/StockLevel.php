@@ -41,3 +41,4 @@ class StockLevel extends Model
         return $this->belongsTo(Location::class, 'location_code', 'location_code');
     }
 }
+

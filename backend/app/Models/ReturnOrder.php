@@ -52,3 +52,4 @@ class ReturnOrder extends Model
         return $this->belongsTo(Contact::class, 'customer_id', 'contact_id');
     }
 }
+

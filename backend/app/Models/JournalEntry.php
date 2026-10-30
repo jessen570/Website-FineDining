@@ -34,3 +34,4 @@ class JournalEntry extends Model
         return $this->hasMany(JournalItem::class, 'entry_id', 'entry_id');
     }
 }
+

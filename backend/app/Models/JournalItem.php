@@ -34,3 +34,4 @@ class JournalItem extends Model
         return $this->belongsTo(ChartOfAccount::class, 'account_code', 'account_code');
     }
 }
+

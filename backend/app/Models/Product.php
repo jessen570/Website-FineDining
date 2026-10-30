@@ -51,3 +51,4 @@ class Product extends Model
         return $this->total_on_hand - $this->total_reserved;
     }
 }
+

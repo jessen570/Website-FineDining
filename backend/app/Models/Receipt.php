@@ -36,3 +36,4 @@ class Receipt extends Model
         return $this->hasMany(ReceiptLine::class, 'receipt_id', 'receipt_id');
     }
 }
+

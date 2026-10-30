@@ -67,3 +67,4 @@ class Invoice extends Model
         return $this->belongsTo(Receipt::class, 'linked_receipt_id', 'receipt_id');
     }
 }
+
