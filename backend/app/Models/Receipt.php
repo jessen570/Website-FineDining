@@ -26,6 +26,11 @@ class Receipt extends Model
         'receipt_date' => 'date',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'receipt_id';
+    }
+
     public function purchaseOrder(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id', 'po_id');

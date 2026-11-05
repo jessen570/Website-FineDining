@@ -27,6 +27,11 @@ class DeliveryOrder extends Model
         'delivery_date' => 'date',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'delivery_id';
+    }
+
     public function salesOrder(): BelongsTo
     {
         return $this->belongsTo(SalesOrder::class, 'sales_order_id', 'order_id');

@@ -1,0 +1,65 @@
+{
+    "T-03": {
+        "test": "T-03 (F-02 Customer Contacts & Credit Terms)",
+        "initial_state": "Customer C-007 in DB: Not Found (None)",
+        "action": "Create Customer C-007 (Credit Limit: Rp900.000, Payment Terms: 7 hari, Opening AR: Rp0)",
+        "system_response": "Customer saved with ID: C-007, Name: Boutique Event Planner Jakarta, Credit Limit: Rp 900.000, Terms: 7 hari, Opening AR: Rp 0",
+        "expected": "Customer C-007 persisted in database with Credit Limit Rp900.000, Payment Terms 7 hari, Opening AR Rp0",
+        "status": "PASS",
+        "evidence": "DB Record: ID=C-007, credit_limit=900000.00, payment_terms=7 hari, opening_ar=0.00"
+    },
+    "T-04": {
+        "test": "T-04 (F-11 Credit Exposure Control \/ SR-15)",
+        "initial_state": "C-003 Limit: Rp 600.000, Opening AR: Rp 0, FD-005 Price: Rp 290.000, KITCH Reserved: 0.00",
+        "action": "Attempt to confirm SO S00022 for C-003 (2x FD-005 @ 290k = 580k + PBJT 58k = Gross 638k)",
+        "system_response": "Confirmation rejected. Flash error: 'Konfirmasi ditolak: batas kredit terlampaui Rp 38.000'. CreditValidation recorded passed=false, exceeded_by=38000. Order remains Draft.",
+        "expected": "Credit validation fails, confirmation rejected, SO remains unconfirmed (Draft), no inventory reservation created",
+        "status": "PASS",
+        "evidence": "CreditValidation CV Code: CV\/2026\/0016, passed=false, exceeded_by=38000.00, SO Status: Draft, is_locked=0, Reserved stock: 0.00"
+    },
+    "T-06": {
+        "test": "T-06 (F-03\/F-07 Price Locking on Confirmed Order \/ SR-24)",
+        "initial_state": "SO S00007 status=Confirmed, is_locked=1, gross_amount=Rp 429.000",
+        "action": "Attempt to edit price of FD-003 in S00007 to Rp 999.999 via edit() and update()",
+        "system_response": "Edit and update rejected. Returned error message. AuditLog recorded action='ATTEMPT_PRICE_EDIT'. SO gross amount unchanged at Rp 429.000",
+        "expected": "Edit rejected, confirmed SO total unchanged, rejection log recorded in audit trail (SR-24)",
+        "status": "PASS",
+        "evidence": "AuditLog ID: 38, Action: ATTEMPT_PRICE_EDIT, Message: 'Edit ditolak: SO S00007 sudah terkunci (Confirmed). SR-24.', Unchanged Gross: Rp 429.000"
+    },
+    "T-09": {
+        "test": "T-09 (F-05 Lead to Opportunity Conversion)",
+        "initial_state": "Lead L0001: is_converted=true, stage=Qualified, source=",
+        "action": "POST \/crm\/leads\/L0001\/convert",
+        "system_response": "Lead marked as converted (is_converted=true), stage updated to 'Qualified', audit log recorded, redirect to Opportunity creation with from_lead=L0001",
+        "expected": "Pipeline stage advances, lead marked converted, lead source preserved, conversion audit logged",
+        "status": "PASS",
+        "evidence": "DB Lead L0001: is_converted=1, stage=Qualified, lead_source=, AuditLog: 'Lead L0001 dikonversi ke Opportunity.'"
+    },
+    "T-10": {
+        "test": "T-10 (F-05 Duplicate Conversion Prevention)",
+        "initial_state": "Lead L0001 is already converted (is_converted=true)",
+        "action": "Second attempt: POST \/crm\/leads\/L0001\/convert",
+        "system_response": "Blocked with error: 'Lead ini sudah pernah dikonversi ke Opportunity.'. No duplicate opportunity created.",
+        "expected": "System prevents duplicate conversion, returns validation\/error message, no second record created",
+        "status": "PASS",
+        "evidence": "Session error: 'Lead ini sudah pernah dikonversi ke Opportunity.', Lead count for L0001 in DB: 1"
+    },
+    "T-11": {
+        "test": "T-11 (F-06 Quotation to Confirmed SO Flow)",
+        "initial_state": "C-001 Credit Limit: Rp 5.000.000, FD-001 Price: Rp 350.000, Reserved stock before: 12.00",
+        "action": "Create Quotation Q00002 for C-001 (2x FD-001 @ 350k = Subtotal 700k + PBJT 70k = 770k), accept, and convert to SO",
+        "system_response": "Credit check passed (Exposure 770k <= Limit 5M). Confirmed SO S00023 created. Inventory reserved incremented by 2.",
+        "expected": "Subtotal=Rp700.000, PBJT=Rp70.000, Gross=Rp770.000, SO created with status Confirmed, inventory reserved=2",
+        "status": "PASS",
+        "evidence": "SO ID: S00023, Subtotal: 700000.00, PBJT: 70000.00, Gross: 770000.00, Status: Confirmed, Reserved Stock KITCH-JKT FD-001: 14.00"
+    },
+    "T-12": {
+        "test": "T-12 (F-07 Discount Policy 15% without Approval ID \/ SR-07 & SR-08)",
+        "initial_state": "Discounts <= 15% are within sales authority according to SR-07",
+        "action": "Create Sales Order for C-001 with 15% discount, without submitting approval_id",
+        "system_response": "Sales order successfully created without blocking. approval_id is NULL. Background DiscountApproval record automatically generated for Finance transparency with status 'Pending'.",
+        "expected": "Document created successfully without requiring upfront Approval ID; Pending DiscountApproval created for Finance transparency",
+        "status": "PASS",
+        "evidence": "SO ID: S00024, discount_percent=15.00, approval_id=NULL, DiscountApproval Code: DA\/2026\/0006, Status: Pending"
+    }
+}

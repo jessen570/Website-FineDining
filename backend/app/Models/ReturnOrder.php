@@ -37,6 +37,11 @@ class ReturnOrder extends Model
         'is_posted' => 'boolean',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'return_id';
+    }
+
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class, 'original_invoice_id', 'invoice_id');

@@ -42,6 +42,11 @@ class Invoice extends Model
         'invoice_date' => 'date',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'invoice_id';
+    }
+
     public function partner(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'partner_id', 'contact_id');

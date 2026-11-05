@@ -29,6 +29,11 @@ class JournalEntry extends Model
         'entry_date' => 'date',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'entry_id';
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(JournalItem::class, 'entry_id', 'entry_id');

@@ -20,6 +20,11 @@ class Employee extends Model
         'private_address',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'employee_id';
+    }
+
     /**
      * Return role-scoped presentation to fulfill SR-14.
      */

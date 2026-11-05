@@ -34,6 +34,11 @@ class Booking extends Model
         'is_vip' => 'boolean',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'booking_id';
+    }
+
     public function table(): BelongsTo
     {
         return $this->belongsTo(RestaurantTable::class, 'table_id', 'table_id');
@@ -42,6 +47,11 @@ class Booking extends Model
     public function assignedServer(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'assigned_server_id', 'employee_id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'customer_id', 'contact_id');
     }
 
     /**

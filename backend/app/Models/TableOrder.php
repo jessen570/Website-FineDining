@@ -31,6 +31,11 @@ class TableOrder extends Model
         'gross_amount' => 'decimal:2',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'order_id';
+    }
+
     public function table(): BelongsTo
     {
         return $this->belongsTo(RestaurantTable::class, 'table_id', 'table_id');

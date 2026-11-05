@@ -30,6 +30,11 @@ class PurchaseOrder extends Model
         'order_date' => 'date',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'po_id';
+    }
+
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'vendor_id', 'contact_id');

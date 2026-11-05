@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="uahXSjuxAaFd7SAdfzHWPfN5DndFqU8THeOab8if">
+    <title>Dasbor — Maison Aster ERP — ERP</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    forest:  { 900:'#0D2218', 800:'#18382E', 700:'#1F4A3A', 600:'#244A3D', 500:'#2E5C4A', 400:'#3D7A62' },
+                    gold:    { 900:'#7A5A2E', 800:'#96703A', 700:'#A88C58', 600:'#C6A76B', 500:'#D4B87A', 400:'#E2CC99' },
+                    ivory:   { DEFAULT:'#F7F5F0', 100:'#F0EEE8', 200:'#E8E4DA', 300:'#DDD8CC' },
+                    stone:   { 50:'#FAFAF9', 100:'#F5F4F1', 200:'#EAE8E3', 300:'#D6D2C9', 400:'#B8B2A6', 500:'#8A8478', 600:'#6B6560', 700:'#4D4944', 800:'#343130', 900:'#1E1C1A' },
+                },
+                fontFamily: {
+                    ui:    ['Inter', 'system-ui', 'sans-serif'],
+                    brand: ['"Playfair Display"', 'Georgia', 'serif'],
+                },
+                fontSize: {
+                    '2xs': ['0.65rem', { lineHeight: '1rem' }],
+                    'xs':  ['0.75rem', { lineHeight: '1.125rem' }],
+                    'sm':  ['0.8125rem', { lineHeight: '1.25rem' }],
+                    'base':['0.875rem', { lineHeight: '1.375rem' }],
+                    'md':  ['0.9375rem', { lineHeight: '1.5rem' }],
+                    'lg':  ['1.0625rem', { lineHeight: '1.625rem' }],
+                    'xl':  ['1.1875rem', { lineHeight: '1.75rem' }],
+                    '2xl': ['1.375rem',  { lineHeight: '2rem' }],
+                    '3xl': ['1.75rem',   { lineHeight: '2.25rem' }],
+                },
+                boxShadow: {
+                    'xs':  '0 1px 2px 0 rgba(0,0,0,0.04)',
+                    'sm':  '0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04)',
+                    'md':  '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.04)',
+                    'lg':  '0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.04)',
+                    'ring-gold': '0 0 0 3px rgba(198,167,107,0.2)',
+                },
+                borderRadius: {
+                    'sm':  '6px',
+                    DEFAULT:'8px',
+                    'md':  '10px',
+                    'lg':  '12px',
+                    'xl':  '16px',
+                },
+            }
+        }
+    }
+    </script>
+
+    <link rel="icon" type="image/jpeg" href="http://localhost:8000/images/logo-icon.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+    /* ─── Base ────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { font-family: 'Inter', system-ui, sans-serif; background-color: #F7F5F0; color: #343130; font-size: 0.875rem; line-height: 1.5; }
+
+    /* ─── Sidebar ─────────────────────────────────────────────────────── */
+    #sidebar {
+        width: 256px;
+        background: #18382E; /* Deep Forest Green */
+        border-right: 1px solid rgba(255,255,255,0.06);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow-y: auto;
+        scrollbar-width: none;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #sidebar::-webkit-scrollbar { display: none; }
+
+    @media (max-width: 1023px) {
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 50;
+            transform: translateX(-105%);
+            box-shadow: none;
+            visibility: hidden;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s;
+        }
+        #sidebar.open {
+            transform: translateX(0);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+            visibility: visible;
+        }
+    }
+
+    #sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 34, 27, 0.6);
+        backdrop-filter: blur(2px);
+        z-index: 45;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+    }
+    #sidebar-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .sidebar-brand {
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .sidebar-monogram {
+        width: 36px; height: 36px;
+        background: #C6A76B;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(198,167,107,0.35);
+    }
+    .sidebar-brand-name {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 600; font-size: 13px; letter-spacing: 0.08em;
+        color: #fff; line-height: 1.2;
+    }
+    .sidebar-brand-sub {
+        font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: rgba(198,167,107,0.55); margin-top: 2px;
+    }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; }
+
+    .nav-section-label {
+        padding: 14px 10px 6px;
+        font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+        color: rgba(255,255,255,0.28); user-select: none;
+    }
+
+    .nav-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px; border-radius: 7px; margin-bottom: 1px;
+        font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.62);
+        text-decoration: none; cursor: pointer;
+        transition: background 0.12s ease, color 0.12s ease;
+        position: relative;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.92); }
+    .nav-item.active {
+        background: rgba(198,167,107,0.15);
+        color: #D4B87A;
+        border: 1px solid rgba(198,167,107,0.22);
+    }
+    .nav-item.active .nav-icon { color: #C6A76B; }
+    .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.75; }
+    .nav-item.active .nav-icon,
+    .nav-item:hover .nav-icon { opacity: 1; }
+    .nav-badge {
+        margin-left: auto;
+        font-size: 10px; font-weight: 700;
+        background: rgba(198,167,107,0.18); color: #C6A76B;
+        padding: 1px 6px; border-radius: 100px;
+        min-width: 18px; text-align: center;
+    }
+    .nav-badge.urgent { background: rgba(239,68,68,0.15); color: #F87171; }
+
+    .sidebar-footer {
+        padding: 14px 14px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+        flex-shrink: 0;
+    }
+    .user-card {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px; border-radius: 8px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.07);
+    }
+    .user-avatar {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: linear-gradient(135deg, #244A3D, #3D7A62);
+        border: 1.5px solid rgba(198,167,107,0.35);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        font-size: 11px; font-weight: 700; color: #D4B87A;
+    }
+    .user-name { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.88); }
+    .user-role { font-size: 10px; color: rgba(255,255,255,0.38); text-transform: capitalize; margin-top: 1px; }
+
+    /* ─── Topbar ──────────────────────────────────────────────────────── */
+    #topbar {
+        height: 52px;
+        background: #FFFFFF;
+        border-bottom: 1px solid #E8E4DA;
+        display: flex; align-items: center;
+        padding: 0 16px;
+        flex-shrink: 0;
+        gap: 12px;
+    }
+    @media (min-width: 640px) {
+        #topbar {
+            padding: 0 24px;
+            gap: 16px;
+        }
+    }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+    .breadcrumb-sep { color: #D6D2C9; font-size: 12px; }
+    .breadcrumb-item { font-size: 12.5px; color: #8A8478; text-decoration: none; }
+    .breadcrumb-item:hover { color: #343130; }
+    .breadcrumb-item.current { color: #343130; font-weight: 600; }
+    .topbar-search {
+        display: flex; align-items: center; gap: 8px;
+        background: #F7F5F0; border: 1px solid #E8E4DA; border-radius: 7px;
+        padding: 6px 12px; width: 200px;
+        font-size: 12.5px; color: #8A8478;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .topbar-search:focus-within { border-color: rgba(198,167,107,0.5); box-shadow: 0 0 0 3px rgba(198,167,107,0.1); }
+    .topbar-search input { background: none; border: none; outline: none; font-size: 12.5px; color: #343130; width: 100%; font-family: inherit; }
+    .topbar-search input::placeholder { color: #B8B2A6; }
+    .topbar-divider { width: 1px; height: 20px; background: #E8E4DA; flex-shrink: 0; }
+    .topbar-chip {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 11.5px; font-weight: 500;
+        padding: 4px 10px; border-radius: 100px;
+        border: 1px solid #E8E4DA; background: #F7F5F0; color: #8A8478;
+        white-space: nowrap;
+    }
+    .topbar-role-chip {
+        font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: capitalize;
+        padding: 4px 10px; border-radius: 100px;
+        background: rgba(24,56,46,0.08); border: 1px solid rgba(24,56,46,0.15);
+        color: #18382E;
+    }
+    .topbar-icon-btn {
+        width: 32px; height: 32px; border-radius: 7px; border: 1px solid #E8E4DA;
+        background: white; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #8A8478; transition: all 0.12s;
+        flex-shrink: 0;
+    }
+    .topbar-icon-btn:hover { background: #F7F5F0; color: #343130; border-color: #D6D2C9; }
+
+    /* ─── Flash Messages ──────────────────────────────────────────────── */
+    .flash-success {
+        display: flex; align-items: flex-start; gap: 10px;
+        background: #F0FDF4; border: 1px solid #A7F3D0;
+        border-left: 3px solid #10B981;
+        padding: 10px 14px; border-radius: 8px;
+        font-size: 13px; color: #065F46;
+    }
+    .flash-error {
+        display: flex; align-items: flex-start; gap: 10px;
+        background: #FEF2F2; border: 1px solid #FECACA;
+        border-left: 3px solid #EF4444;
+        padding: 10px 14px; border-radius: 8px;
+        font-size: 13px; color: #991B1B;
+    }
+
+    /* ─── Page Layout ─────────────────────────────────────────────────── */
+    .page-header {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+        margin-bottom: 24px;
+    }
+    .page-title { font-size: 1.25rem; font-weight: 700; color: #1E1C1A; letter-spacing: -0.01em; }
+    .page-desc  { font-size: 12.5px; color: #8A8478; margin-top: 3px; }
+
+    /* ─── Cards ───────────────────────────────────────────────────────── */
+    .card {
+        background: #ffffff;
+        border: 1px solid #E8E4DA;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .card-header {
+        padding: 14px 18px;
+        border-bottom: 1px solid #F0EEE8;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 12.5px; font-weight: 700; color: #343130; letter-spacing: 0.01em; }
+    .card-body  { padding: 18px; }
+
+    /* ─── KPI Cards ───────────────────────────────────────────────────── */
+    .kpi {
+        background: #ffffff;
+        border: 1px solid #E8E4DA;
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    .kpi-label  { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8A8478; margin-bottom: 10px; }
+    .kpi-value  { font-size: 1.625rem; font-weight: 700; color: #1E1C1A; letter-spacing: -0.02em; line-height: 1; }
+    .kpi-sub    { font-size: 11.5px; color: #B8B2A6; margin-top: 6px; }
+    .kpi-icon   {
+        position: absolute; right: 14px; top: 14px;
+        width: 34px; height: 34px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0.85;
+    }
+    .kpi-divider { width: 3px; height: 36px; border-radius: 2px; position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+
+    /* ─── Toolbar ─────────────────────────────────────────────────────── */
+    .toolbar {
+        background: white; border: 1px solid #E8E4DA; border-radius: 10px;
+        padding: 12px 14px;
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .toolbar-search {
+        display: flex; align-items: center; gap: 8px;
+        background: #F7F5F0; border: 1px solid #E8E4DA; border-radius: 7px;
+        padding: 7px 12px; flex: 1; min-width: 200px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .toolbar-search:focus-within { border-color: rgba(198,167,107,0.5); box-shadow: 0 0 0 3px rgba(198,167,107,0.1); background: white; }
+    .toolbar-search input { background: none; border: none; outline: none; font-size: 13px; color: #343130; width: 100%; font-family: inherit; }
+    .toolbar-search input::placeholder { color: #B8B2A6; }
+    .toolbar-select {
+        background: white; border: 1px solid #E8E4DA; border-radius: 7px;
+        padding: 7px 28px 7px 10px; font-size: 13px; color: #343130;
+        font-family: inherit; outline: none; cursor: pointer;
+        appearance: none; min-width: 130px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8478' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 8px center;
+        transition: border-color 0.15s;
+    }
+    .toolbar-select:focus { border-color: rgba(198,167,107,0.5); box-shadow: 0 0 0 3px rgba(198,167,107,0.1); }
+
+    /* ─── Buttons ─────────────────────────────────────────────────────── */
+    .btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 7px 14px; border-radius: 7px;
+        font-size: 13px; font-weight: 600; font-family: inherit;
+        cursor: pointer; transition: all 0.12s; text-decoration: none;
+        border: 1px solid transparent; white-space: nowrap;
+    }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-xs { padding: 3px 8px; font-size: 11px; }
+
+    .btn-primary {
+        background: #18382E; color: white; border-color: #18382E;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+    .btn-primary:hover { background: #244A3D; border-color: #244A3D; }
+
+    .btn-gold {
+        background: #C6A76B; color: white; border-color: #C6A76B;
+        box-shadow: 0 1px 2px rgba(198,167,107,0.25);
+    }
+    .btn-gold:hover { background: #B8965A; border-color: #B8965A; }
+
+    .btn-outline {
+        background: white; color: #4D4944; border-color: #DDD8CC;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .btn-outline:hover { background: #F7F5F0; border-color: #C8C2B6; }
+
+    .btn-ghost { background: transparent; color: #6B6560; border-color: transparent; }
+    .btn-ghost:hover { background: #F0EEE8; color: #343130; }
+
+    .btn-danger { background: white; color: #DC2626; border-color: #FECACA; }
+    .btn-danger:hover { background: #FEF2F2; border-color: #FCA5A5; }
+
+    .btn-success { background: #059669; color: white; border-color: #059669; }
+    .btn-success:hover { background: #047857; }
+
+    /* ─── Table ───────────────────────────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead { background: #FAFAF9; border-bottom: 1px solid #E8E4DA; }
+    .data-table th {
+        padding: 10px 16px; text-align: left;
+        font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+        color: #8A8478; white-space: nowrap;
+    }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid #F0EEE8; vertical-align: middle; }
+    .data-table tbody tr { transition: background 0.1s; }
+    .data-table tbody tr:hover { background: #FAFAF9; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table .col-id { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #6B6560; }
+    .data-table .col-name { font-weight: 600; color: #1E1C1A; }
+    .data-table .col-name a { color: #18382E; text-decoration: none; }
+    .data-table .col-name a:hover { color: #C6A76B; text-decoration: underline; }
+    .data-table .col-num { font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums; }
+    .data-table .col-actions { white-space: nowrap; }
+
+    /* ─── Badges ──────────────────────────────────────────────────────── */
+    .badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 100px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+        border: 1px solid transparent; white-space: nowrap;
+    }
+    .badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .b-green   { background:#ECFDF5; color:#065F46; border-color:#A7F3D0; }
+    .b-emerald { background:#D1FAE5; color:#064E3B; border-color:#6EE7B7; }
+    .b-gold    { background:#FFFBEB; color:#78350F; border-color:#FDE68A; }
+    .b-amber   { background:#FFF7ED; color:#7C2D12; border-color:#FED7AA; }
+    .b-blue    { background:#EFF6FF; color:#1E40AF; border-color:#BFDBFE; }
+    .b-purple  { background:#F5F3FF; color:#4C1D95; border-color:#DDD6FE; }
+    .b-gray    { background:#F9FAFB; color:#374151; border-color:#E5E7EB; }
+    .b-red     { background:#FEF2F2; color:#991B1B; border-color:#FECACA; }
+    .b-rose    { background:#FFF1F2; color:#881337; border-color:#FECDD3; }
+    .b-forest  { background:#F0FDF4; color:#14532D; border-color:#BBF7D0; }
+
+    /* ─── Forms ───────────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+        display: block; font-size: 11.5px; font-weight: 700;
+        letter-spacing: 0.06em; text-transform: uppercase; color: #6B6560;
+        margin-bottom: 6px;
+    }
+    .form-input {
+        width: 100%; padding: 8px 12px; font-size: 13.5px;
+        background: white; border: 1px solid #DDD8CC; border-radius: 7px;
+        color: #1E1C1A; font-family: inherit; outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus { border-color: #C6A76B; box-shadow: 0 0 0 3px rgba(198,167,107,0.12); }
+    .form-input::placeholder { color: #B8B2A6; }
+    .form-input.is-error { border-color: #FCA5A5; }
+    .form-input.is-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+    .form-select {
+        width: 100%; padding: 8px 32px 8px 12px; font-size: 13.5px;
+        background: white; border: 1px solid #DDD8CC; border-radius: 7px;
+        color: #1E1C1A; font-family: inherit; outline: none; appearance: none; cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%238A8478' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 10px center;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-select:focus { border-color: #C6A76B; box-shadow: 0 0 0 3px rgba(198,167,107,0.12); }
+    .form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .form-hint { font-size: 11.5px; color: #B8B2A6; margin-top: 4px; }
+    .form-error { font-size: 11.5px; color: #DC2626; margin-top: 4px; font-weight: 500; }
+
+    /* ─── Status progress bar ─────────────────────────────────────────── */
+    .status-pipeline {
+        display: flex; align-items: center; padding: 14px 0; overflow: hidden;
+    }
+    .pipeline-step {
+        display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; position: relative;
+    }
+    .pipeline-step:not(:last-child)::after {
+        content: ''; position: absolute; top: 12px; left: calc(50% + 14px);
+        width: calc(100% - 28px); height: 1.5px; background: #E8E4DA;
+    }
+    .pipeline-step.done::after  { background: #18382E; }
+    .pipeline-dot {
+        width: 24px; height: 24px; border-radius: 50%; z-index: 1;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 700;
+        border: 2px solid #E8E4DA; background: white; color: #B8B2A6;
+    }
+    .pipeline-step.done  .pipeline-dot { background: #18382E; border-color: #18382E; color: white; }
+    .pipeline-step.active .pipeline-dot { background: white; border-color: #C6A76B; color: #C6A76B; box-shadow: 0 0 0 3px rgba(198,167,107,0.15); }
+    .pipeline-label { font-size: 10.5px; font-weight: 600; color: #B8B2A6; text-align: center; white-space: nowrap; }
+    .pipeline-step.done   .pipeline-label { color: #18382E; }
+    .pipeline-step.active .pipeline-label { color: #C6A76B; }
+
+    /* ─── Credit bar ──────────────────────────────────────────────────── */
+    .credit-bar { height: 6px; background: #F0EEE8; border-radius: 100px; overflow: hidden; }
+    .credit-fill { height: 100%; border-radius: 100px; transition: width 0.5s ease; }
+
+    /* ─── Empty State ─────────────────────────────────────────────────── */
+    .empty-state {
+        padding: 48px 24px; text-align: center;
+    }
+    .empty-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        background: #F0EEE8; display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 14px; color: #B8B2A6;
+    }
+    .empty-title { font-size: 14px; font-weight: 700; color: #4D4944; margin-bottom: 5px; }
+    .empty-text  { font-size: 12.5px; color: #8A8478; max-width: 320px; margin: 0 auto 16px; line-height: 1.6; }
+
+    /* ─── Utilities ───────────────────────────────────────────────────── */
+    .text-mono { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; }
+    .divider   { border: none; border-top: 1px solid #F0EEE8; margin: 16px 0; }
+    .section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8A8478; margin-bottom: 12px; }
+    </style>
+
+    </head>
+
+<body class="h-full overflow-hidden">
+<div id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+<div style="display:flex;height:100vh;overflow:hidden">
+
+    
+    <aside id="sidebar">
+
+        
+        <div class="sidebar-brand">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+                <a href="http://localhost/dashboard" style="display:flex;align-items:center;gap:12px;text-decoration:none">
+                    <img src="http://localhost:8000/images/logo-icon.jpg" alt="Maison Aster" style="width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid rgba(198,167,107,0.4);box-shadow:0 2px 8px rgba(198,167,107,0.35);flex-shrink:0">
+                    <div>
+                        <div class="sidebar-brand-name">MAISON ASTER</div>
+                        <div class="sidebar-brand-sub">Fine Dining ERP</div>
+                    </div>
+                </a>
+                <button type="button" onclick="toggleSidebar(false)" class="lg:hidden text-white/60 hover:text-white p-1 rounded-lg transition-colors" title="Tutup menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        
+        <nav class="sidebar-nav">
+
+            <a href="http://localhost/dashboard"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                Dasbor
+            </a>
+
+            <div class="nav-section-label">CRM & Prospek</div>
+
+            <a href="http://localhost/crm/leads"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Prospek
+                                            </a>
+
+            <a href="http://localhost/crm/opportunities"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                Peluang
+            </a>
+
+            <a href="http://localhost/crm/pipeline"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                Pipeline
+            </a>
+
+            <div class="nav-section-label">Penjualan</div>
+
+            <a href="http://localhost/sales/customers"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Pelanggan
+            </a>
+
+            <a href="http://localhost/sales/quotations"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Surat Penawaran
+                                            </a>
+
+            <a href="http://localhost/sales/orders"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                Pesanan Penjualan
+            </a>
+
+            <a href="http://localhost/sales/discounts"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                Persetujuan Diskon
+                                <span class="nav-badge urgent">1</span>            </a>
+
+            <a href="http://localhost/sales/credit"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Kontrol Kredit
+            </a>
+
+            <a href="http://localhost/sales/reports"
+               class="nav-item ">
+                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Laporan Penjualan
+            </a>
+
+        </nav>
+
+        
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">MA</div>
+                <div style="flex:1;min-width:0">
+                    <div class="user-name">Maya Atmadja</div>
+                                        <div class="user-role">Owner / Pemilik</div>
+                </div>
+                <form method="POST" action="http://localhost/logout" style="flex-shrink:0">
+                    <input type="hidden" name="_token" value="uahXSjuxAaFd7SAdfzHWPfN5DndFqU8THeOab8if" autocomplete="off">                    <button type="submit" title="Keluar dari sistem" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:transparent;border:none;cursor:pointer;color:rgba(255,255,255,0.35);transition:all 0.12s" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='rgba(255,255,255,0.8)'" onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.35)'">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </aside>
+
+    
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+
+        
+        <div id="topbar">
+            <button type="button" onclick="toggleSidebar(true)" class="lg:hidden topbar-icon-btn" style="margin-right:6px" title="Buka menu navigasi">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="breadcrumb">
+                <span class="breadcrumb-item" style="color:#343130;font-weight:600">Maison Aster</span>
+                                    <span class="breadcrumb-sep">›</span>
+                    <span class="breadcrumb-item current">Dasbor</span>                            </div>
+            <div class="topbar-search hidden sm:flex" style="width:200px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#B8B2A6"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" placeholder="Cari data…">
+            </div>
+            <div class="topbar-divider hidden sm:block"></div>
+            <div class="topbar-chip hidden md:flex" style="font-size:11px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Jakarta Selatan
+            </div>
+            <div class="topbar-role-chip hidden sm:block">Owner / Pemilik</div>
+        </div>
+
+        
+                
+        
+        <main style="flex:1;overflow-y:auto;padding:1.5rem 1rem" class="sm:p-6 lg:p-8">
+            <div style="width:100%;max-width:1720px;margin-left:auto;margin-right:auto">
+                
+
+<div class="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 bg-gradient-to-r from-white via-white to-stone-50/80 p-4 sm:p-6 rounded-2xl border border-[#E8E4DA] shadow-xs">
+    <div class="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0">
+        <img src="http://localhost:8000/images/logo-icon.jpg" alt="Maison Aster" class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover border border-[#C6A76B]/40 shadow-sm flex-shrink-0">
+        <div class="min-w-0 flex-1">
+                        <div class="mb-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#18382E]/10 text-[#18382E] border border-[#18382E]/20 mb-1">
+                    Ringkasan Eksekutif
+                </span>
+                <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight leading-tight" style="font-family:'Playfair Display',serif">
+                    Selamat Pagi, Maya Atmadja
+                </h1>
+            </div>
+            <p class="text-xs sm:text-sm text-gray-600 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span>Ringkasan Kinerja Penjualan & CRM</span>
+                <span class="text-gray-300 hidden sm:inline">•</span>
+                <span class="text-gray-500 block sm:inline">Kamis, 05 November 2026</span>
+            </p>
+        </div>
+    </div>
+
+    
+    <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-100 w-full lg:w-auto">
+        <a href="http://localhost/crm/leads/create" class="btn btn-outline justify-center text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-xs hover:border-[#C6A76B] transition-colors">
+            <i data-lucide="user-plus" class="w-4 h-4 text-[#18382E]"></i>
+            <span>Tambah Prospek</span>
+        </a>
+        <a href="http://localhost/sales/quotations/create" class="btn btn-outline justify-center text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-xs hover:border-[#C6A76B] transition-colors">
+            <i data-lucide="file-text" class="w-4 h-4 text-[#C6A76B]"></i>
+            <span>Buat Penawaran</span>
+        </a>
+        <a href="http://localhost/sales/orders/create" class="btn btn-primary justify-center text-xs sm:text-sm py-2 px-3.5 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-sm bg-[#18382E] hover:bg-[#244A3D] text-white transition-colors">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-[#C6A76B]"></i>
+            <span>Pesanan Baru</span>
+        </a>
+    </div>
+</div>
+
+
+<div class="mb-8">
+    <div class="flex items-center justify-between mb-3.5">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Indikator Kinerja Utama (KPI)</h2>
+        <span class="text-xs text-gray-400 hidden sm:inline">Pembaruan otomatis saat data berubah</span>
+    </div>
+
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+
+        
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Prospek</span>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1.5 tracking-tight">1</h3>
+                </div>
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span class="text-emerald-700 font-semibold flex items-center gap-1">
+                    <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                    0 Aktif
+                </span>
+                <a href="http://localhost/crm/leads" class="text-[#C6A76B] hover:text-[#96703A] font-medium inline-flex items-center gap-0.5">
+                    Detail <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+
+        
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Peluang Aktif</span>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1.5 tracking-tight">1</h3>
+                </div>
+                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span class="text-blue-700 font-semibold flex items-center gap-1">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-blue-600"></i>
+                    0 Berhasil (Won)
+                </span>
+                <a href="http://localhost/crm/opportunities" class="text-[#C6A76B] hover:text-[#96703A] font-medium inline-flex items-center gap-0.5">
+                    Detail <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+
+        
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pesanan Penjualan</span>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1.5 tracking-tight">2</h3>
+                </div>
+                <div class="w-11 h-11 rounded-xl bg-green-50 text-green-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span class="text-gray-600 font-medium">
+                    Bln Ini: <strong class="text-green-800">Rp 1.2M</strong>
+                </span>
+                <a href="http://localhost/sales/orders" class="text-[#C6A76B] hover:text-[#96703A] font-medium inline-flex items-center gap-0.5">
+                    Detail <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+
+        
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Pelanggan</span>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1.5 tracking-tight">7</h3>
+                </div>
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                                    <span class="text-red-600 font-semibold flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                        1 Melebihi Kredit
+                    </span>
+                                <a href="http://localhost/sales/customers" class="text-[#C6A76B] hover:text-[#96703A] font-medium inline-flex items-center gap-0.5">
+                    Detail <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+
+        
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nilai Pipeline</span>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-[#18382E] mt-1.5 tracking-tight">
+                                                    Rp 1.5M
+                                            </h3>
+                </div>
+                <div class="w-11 h-11 rounded-xl bg-[#18382E]/10 text-[#18382E] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <i data-lucide="coins" class="w-5 h-5 text-[#C6A76B]"></i>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span class="text-gray-600 font-medium">
+                    Konversi: <strong class="text-gray-900">0%</strong>
+                </span>
+                <a href="http://localhost/crm/pipeline" class="text-[#C6A76B] hover:text-[#96703A] font-medium inline-flex items-center gap-0.5">
+                    Pipeline <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 items-stretch">
+
+    
+    <div class="lg:col-span-7 xl:col-span-8 bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-[#F0EEE8] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-base font-bold text-gray-900">Kinerja Penjualan</h2>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200">
+                        6 Bulan Terakhir
+                    </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Realisasi total nominal pesanan penjualan yang telah dikonfirmasi dan selesai</p>
+            </div>
+            <div class="text-left sm:text-right flex-shrink-0">
+                <span class="text-2xs uppercase tracking-wider text-gray-400 block font-semibold">Total Pendapatan Kumulatif</span>
+                <span class="text-lg font-bold text-[#18382E]">Rp 1.199.000</span>
+            </div>
+        </div>
+
+        <div class="p-5 sm:p-6 flex-1 flex flex-col justify-center">
+            <div class="relative w-full h-[260px] sm:h-[300px]">
+                <canvas id="salesPerformanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="px-5 py-3.5 bg-gray-50/70 border-t border-[#F0EEE8] flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
+            <div class="flex items-center gap-4">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-sm bg-[#18382E]"></span>
+                    Realisasi Penjualan Bulanan
+                </span>
+                <span class="flex items-center gap-1.5 text-gray-500">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                    Termasuk PBJT 10%
+                </span>
+            </div>
+            <a href="http://localhost/sales/reports" class="text-[#C6A76B] hover:text-[#96703A] font-semibold inline-flex items-center gap-1">
+                Laporan Lengkap <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </a>
+        </div>
+    </div>
+
+    
+    <div class="lg:col-span-5 xl:col-span-4 bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-[#F0EEE8] flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-gray-900">Tahapan Pipeline</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Distribusi peluang aktif & estimasi nilai</p>
+            </div>
+            <a href="http://localhost/crm/pipeline" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A] inline-flex items-center gap-1">
+                Buka Pipeline <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            </a>
+        </div>
+
+        <div class="p-5 sm:p-6 flex-1 space-y-4">
+            
+                                            <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-gray-800 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
+                            Prospek Baru (Lead)
+                        </span>
+                        <div class="text-right">
+                            <span class="font-bold text-gray-900">0</span>
+                            <span class="text-gray-400 font-normal">(0%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div class="bg-gray-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="text-right mt-1">
+                        <span class="text-[11px] text-gray-500">Nilai: <strong>Rp 0</strong></span>
+                    </div>
+                </div>
+                                            <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-gray-800 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                            Kualifikasi (Qualified)
+                        </span>
+                        <div class="text-right">
+                            <span class="font-bold text-gray-900">1</span>
+                            <span class="text-gray-400 font-normal">(100%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 100%"></div>
+                    </div>
+                    <div class="text-right mt-1">
+                        <span class="text-[11px] text-gray-500">Nilai: <strong>Rp 1.500.000</strong></span>
+                    </div>
+                </div>
+                                            <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-gray-800 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            Pengajuan Penawaran (Proposition)
+                        </span>
+                        <div class="text-right">
+                            <span class="font-bold text-gray-900">0</span>
+                            <span class="text-gray-400 font-normal">(0%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="text-right mt-1">
+                        <span class="text-[11px] text-gray-500">Nilai: <strong>Rp 0</strong></span>
+                    </div>
+                </div>
+                                            <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-gray-800 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                            Negosiasi (Negotiation)
+                        </span>
+                        <div class="text-right">
+                            <span class="font-bold text-gray-900">0</span>
+                            <span class="text-gray-400 font-normal">(0%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div class="bg-purple-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="text-right mt-1">
+                        <span class="text-[11px] text-gray-500">Nilai: <strong>Rp 0</strong></span>
+                    </div>
+                </div>
+                                            <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-gray-800 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                            Berhasil (Won)
+                        </span>
+                        <div class="text-right">
+                            <span class="font-bold text-gray-900">0</span>
+                            <span class="text-gray-400 font-normal">(0%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div class="bg-emerald-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="text-right mt-1">
+                        <span class="text-[11px] text-gray-500">Nilai: <strong>Rp 0</strong></span>
+                    </div>
+                </div>
+                                            <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-gray-800 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                            Gagal (Lost)
+                        </span>
+                        <div class="text-right">
+                            <span class="font-bold text-gray-900">0</span>
+                            <span class="text-gray-400 font-normal">(0%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div class="bg-rose-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="text-right mt-1">
+                        <span class="text-[11px] text-gray-500">Nilai: <strong>Rp 0</strong></span>
+                    </div>
+                </div>
+                    </div>
+
+        <div class="px-5 py-3.5 bg-gray-50/70 border-t border-[#F0EEE8] flex items-center justify-between text-xs text-gray-600">
+            <span>Total Peluang Terbuka: <strong class="text-gray-900">1</strong></span>
+            <span class="font-bold text-[#18382E]">Rp 1.500.000</span>
+        </div>
+    </div>
+
+</div>
+
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+    
+    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
+        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-green-50 text-green-700 flex items-center justify-center">
+                    <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Pesanan Penjualan Terbaru</h3>
+                    <p class="text-2xs text-gray-500">Transaksi terakhir yang dicatat</p>
+                </div>
+            </div>
+            <a href="http://localhost/sales/orders" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A]">
+                Lihat Semua →
+            </a>
+        </div>
+
+        <div class="divide-y divide-gray-100 flex-1">
+                            <a href="http://localhost/sales/orders/S00007" class="p-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between block group">
+                    <div class="min-w-0 pr-3">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs font-bold text-[#18382E] group-hover:underline">S00007</span>
+                                                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                Dikonfirmasi
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-800 font-medium truncate mt-1">PT Senja Kuliner</p>
+                        <p class="text-2xs text-gray-400 mt-0.5">01 Nov 2026</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="text-xs font-bold text-gray-900 block">Rp 429.000</span>
+                        <span class="text-2xs text-gray-400">Total Kotor</span>
+                    </div>
+                </a>
+                            <a href="http://localhost/sales/orders/S00002" class="p-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between block group">
+                    <div class="min-w-0 pr-3">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs font-bold text-[#18382E] group-hover:underline">S00002</span>
+                                                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                                Draf
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-800 font-medium truncate mt-1">Nadia Kurnia</p>
+                        <p class="text-2xs text-gray-400 mt-0.5">05 Nov 2026</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="text-xs font-bold text-gray-900 block">Rp 638.000</span>
+                        <span class="text-2xs text-gray-400">Total Kotor</span>
+                    </div>
+                </a>
+                            <a href="http://localhost/sales/orders/S00003" class="p-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between block group">
+                    <div class="min-w-0 pr-3">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs font-bold text-[#18382E] group-hover:underline">S00003</span>
+                                                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                Dikonfirmasi
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-800 font-medium truncate mt-1">Aditya Pranoto</p>
+                        <p class="text-2xs text-gray-400 mt-0.5">05 Nov 2026</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="text-xs font-bold text-gray-900 block">Rp 770.000</span>
+                        <span class="text-2xs text-gray-400">Total Kotor</span>
+                    </div>
+                </a>
+                            <a href="http://localhost/sales/orders/S00004" class="p-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between block group">
+                    <div class="min-w-0 pr-3">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs font-bold text-[#18382E] group-hover:underline">S00004</span>
+                                                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                                Draf
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-800 font-medium truncate mt-1">Aditya Pranoto</p>
+                        <p class="text-2xs text-gray-400 mt-0.5">05 Nov 2026</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="text-xs font-bold text-gray-900 block">Rp 327.250</span>
+                        <span class="text-2xs text-gray-400">Total Kotor</span>
+                    </div>
+                </a>
+                    </div>
+    </div>
+
+    
+    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
+        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Prospek Terbaru</h3>
+                    <p class="text-2xs text-gray-500">Kontak prospek masuk</p>
+                </div>
+            </div>
+            <a href="http://localhost/crm/leads" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A]">
+                Lihat Semua →
+            </a>
+        </div>
+
+        <div class="divide-y divide-gray-100 flex-1">
+                            <a href="http://localhost/crm/leads/L0001" class="p-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between block group">
+                    <div class="flex items-center gap-3 min-w-0 pr-3">
+                        <div class="w-9 h-9 rounded-lg bg-[#18382E] text-[#C6A76B] font-bold text-sm flex items-center justify-center flex-shrink-0">
+                            A
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-gray-900 truncate group-hover:text-[#18382E] group-hover:underline">
+                                Acara Gathering PT Andalan Prima
+                            </p>
+                            <p class="text-2xs text-gray-500 truncate mt-0.5">
+                                PT Andalan Prima
+                                                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                            Kualifikasi
+                        </span>
+                        <span class="text-2xs text-gray-400 block mt-1">1 hour ago</span>
+                    </div>
+                </a>
+                    </div>
+    </div>
+
+    
+    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
+        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Tindakan Tertunda & Peringatan</h3>
+                    <p class="text-2xs text-gray-500">Perhatian manajerial yang diperlukan</p>
+                </div>
+            </div>
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                    2 Perhatian
+                </span>
+                    </div>
+
+        <div class="p-5 flex-1 space-y-3">
+
+            
+                            <div class="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-2.5">
+                        <i data-lucide="percent" class="w-4 h-4 text-amber-700 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <h4 class="text-xs font-bold text-amber-900">Persetujuan Diskon Tertunda</h4>
+                            <p class="text-2xs text-amber-700 mt-0.5">1 permohonan diskon memerlukan tinjauan persetujuan manajer.</p>
+                        </div>
+                    </div>
+                    <a href="http://localhost/sales/discounts?status=Pending" class="text-xs font-bold text-amber-800 hover:underline flex-shrink-0">
+                        Tinjau →
+                    </a>
+                </div>
+            
+            
+                            <div class="p-3.5 bg-rose-50/70 border border-rose-200/80 rounded-xl flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-2.5">
+                        <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-700 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <h4 class="text-xs font-bold text-rose-900">Melebihi Batas Kredit</h4>
+                            <p class="text-2xs text-rose-700 mt-0.5">1 pelanggan telah melampaui batas kredit yang ditentukan.</p>
+                        </div>
+                    </div>
+                    <a href="http://localhost/sales/credit" class="text-xs font-bold text-rose-800 hover:underline flex-shrink-0">
+                        Lihat →
+                    </a>
+                </div>
+            
+            
+            
+            
+            
+        </div>
+
+        <div class="px-5 py-3.5 bg-gray-50/70 border-t border-[#F0EEE8] flex items-center justify-between text-xs text-gray-500">
+            <span>Kontrol Risiko Kredit & Otomasi</span>
+            <a href="http://localhost/sales/credit" class="text-[#C6A76B] hover:text-[#96703A] font-semibold">
+                Pusat Kontrol Kredit →
+            </a>
+        </div>
+    </div>
+
+</div>
+
+            </div>
+        </main>
+
+    </div>
+</div>
+
+<script>
+function toggleSidebar(open) {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (!sb || !bd) return;
+    if (open) {
+        sb.classList.add('open');
+        bd.classList.add('open');
+    } else {
+        sb.classList.remove('open');
+        bd.classList.remove('open');
+    }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ─── Render Sales Performance Chart (Chart.js) ─────────────────────
+    const ctx = document.getElementById('salesPerformanceChart');
+    if (ctx && typeof Chart !== 'undefined') {
+        const salesData = [{"label":"Jun 2026","value":0},{"label":"Jul 2026","value":0},{"label":"Aug 2026","value":0},{"label":"Sep 2026","value":0},{"label":"Oct 2026","value":0},{"label":"Nov 2026","value":1199000}];
+        const labels = salesData.map(d => d.label);
+        const values = salesData.map(d => d.value);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Realisasi Penjualan (Rp)',
+                    data: values,
+                    backgroundColor: 'rgba(24, 56, 46, 0.88)',
+                    borderColor: '#C6A76B',
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                    hoverBackgroundColor: '#244A3D',
+                    maxBarThickness: 48,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#18382E',
+                        titleColor: '#C6A76B',
+                        titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                        bodyColor: '#FFFFFF',
+                        bodyFont: { family: 'Inter', size: 13 },
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Total: Rp ' + new Intl.NumberFormat('id-ID').format(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#6B6560',
+                            font: { family: 'Inter', size: 11, weight: '500' }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: '#F0EEE8',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#8A8478',
+                            font: { family: 'Inter', size: 11 },
+                            callback: function(value) {
+                                if (value >= 1000000) {
+                                    return (value / 1000000).toFixed(1) + 'M';
+                                } else if (value >= 1000) {
+                                    return (value / 1000).toFixed(0) + 'K';
+                                }
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>
