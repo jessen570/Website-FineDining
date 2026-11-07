@@ -58,7 +58,14 @@ class InventoryController extends Controller
     {
         $locations = Location::all();
         $products  = Product::orderBy('variant_sku')->get();
-        return view('inventory.transfer', compact('locations', 'products'));
+        $stockData = StockLevel::all()->map(fn($sl) => [
+            'location_code' => $sl->location_code,
+            'variant_sku'   => $sl->variant_sku,
+            'on_hand'       => (float) $sl->on_hand,
+            'reserved'      => (float) $sl->reserved,
+            'available'     => (float) $sl->available,
+        ]);
+        return view('inventory.transfer', compact('locations', 'products', 'stockData'));
     }
 
     public function storeTransfer(Request $request)

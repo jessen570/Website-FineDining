@@ -171,18 +171,8 @@
 
 @push('scripts')
 <script>
-// Stock data from backend (embedded)
-const stockData = @json(
-    \App\Models\StockLevel::with('product')
-        ->get()
-        ->map(fn($sl) => [
-            'location_code' => $sl->location_code,
-            'variant_sku'   => $sl->variant_sku,
-            'on_hand'       => (float) $sl->on_hand,
-            'reserved'      => (float) $sl->reserved,
-            'available'     => (float) $sl->available,
-        ])
-);
+// Stock data from backend (passed from InventoryController@transferForm)
+const stockData = {!! json_encode($stockData ?? []) !!};
 
 function getStock(loc, sku) {
     return stockData.find(s => s.location_code === loc && s.variant_sku === sku) || null;

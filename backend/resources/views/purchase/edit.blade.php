@@ -180,12 +180,15 @@
 
 </div>
 
+@php
+$pricelistJson = \App\Models\VendorPricelist::all()
+    ->map(fn($pl) => ['vendor_id' => $pl->vendor_id, 'variant_sku' => $pl->variant_sku, 'unit_purchase_price' => (float) $pl->unit_purchase_price]);
+$productsJson = $products->map(fn($p) => ['variant_sku' => $p->variant_sku, 'name' => $p->name]);
+@endphp
+
 @push('scripts')
 <script>
-const pricelist = @json(
-    \App\Models\VendorPricelist::all()
-        ->map(fn($pl) => ['vendor_id'=>$pl->vendor_id,'variant_sku'=>$pl->variant_sku,'unit_purchase_price'=>(float)$pl->unit_purchase_price])
-);
+const pricelist = @json($pricelistJson);
 let lineCount = {{ $po->lines->count() }};
 
 function fmt(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
@@ -225,7 +228,7 @@ function prefillPrices() {
 function addLine() {
     const idx  = lineCount++;
     const body = document.getElementById('lines-body');
-    const products = @json($products->map(fn($p) => ['variant_sku'=>$p->variant_sku,'name'=>$p->name]));
+    const products = @json($productsJson);
     const opts = products.map(p => `<option value="${p.variant_sku}">${p.variant_sku} — ${p.name}</option>`).join('');
     const tr = document.createElement('tr');
     tr.id = `line-row-${idx}`;
