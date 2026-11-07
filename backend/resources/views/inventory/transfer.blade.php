@@ -16,7 +16,7 @@
     <div class="page-header">
         <div>
             <h1 class="page-title">Transfer Stok Antar Lokasi</h1>
-            <p class="page-desc">Mutasi KITCH-JKT ↔ BAR-JKT · F-20 · SR-09, SR-21</p>
+            <p class="page-desc">Mutasi stok persediaan KITCH-JKT ↔ BAR-JKT</p>
         </div>
         <a href="{{ route('inventory.index') }}" class="btn btn-outline">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
@@ -26,15 +26,13 @@
 
     {{-- Business Rules Banner --}}
     <div style="background:#FFFBEB;border:1px solid #FDE68A;border-left:3px solid #D97706;border-radius:8px;padding:12px 16px;margin-bottom:20px">
-        <div style="font-weight:700;font-size:12.5px;color:#78350F;margin-bottom:6px">Aturan Bisnis Aktif</div>
+        <div style="font-weight:700;font-size:12.5px;color:#78350F;margin-bottom:6px">Ketentuan Transfer</div>
         <div style="display:flex;flex-direction:column;gap:5px">
             <div style="font-size:12px;color:#92400E">
-                <span class="badge b-amber" style="margin-right:6px">SR-09</span>
-                Transfer ditolak jika Available di lokasi asal &lt; qty yang diminta.
+                • Transfer akan ditolak jika jumlah melebihi stok yang tersedia (Available) di lokasi asal.
             </div>
             <div style="font-size:12px;color:#92400E">
-                <span class="badge b-amber" style="margin-right:6px">SR-21</span>
-                Total unit perusahaan tidak berubah — berkurang di asal, bertambah di tujuan dengan qty sama.
+                • Total stok perusahaan tidak berubah — stok berkurang di asal dan bertambah di tujuan dengan jumlah yang sama.
             </div>
         </div>
     </div>
@@ -147,7 +145,7 @@
 
                 {{-- Warning if over available --}}
                 <div id="qty-warning" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-left:3px solid #EF4444;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#991B1B">
-                    <strong>SR-09:</strong> Jumlah melebihi Available di lokasi asal. Transfer akan ditolak oleh sistem.
+                    <strong>Peringatan:</strong> Jumlah melebihi stok yang tersedia di lokasi asal. Transfer akan ditolak oleh sistem.
                 </div>
 
                 <div class="form-group" style="margin:0">
@@ -208,10 +206,10 @@ function checkQty() {
     const avail = s ? s.available : 0;
     if (qty > 0 && s && qty > avail) {
         warn.style.display = 'block';
-        hint.textContent = `Max transfer: ${avail} unit (SR-09)`;
+        hint.textContent = `Maksimal transfer: ${avail} unit`;
     } else {
         warn.style.display = 'none';
-        hint.textContent = s ? `Available di lokasi asal: ${avail} unit` : 'Masukkan jumlah unit yang akan dipindah.';
+        hint.textContent = s ? `Stok tersedia di lokasi asal: ${avail} unit` : 'Masukkan jumlah unit yang akan dipindah.';
     }
 }
 

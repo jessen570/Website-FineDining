@@ -145,13 +145,13 @@ Route::middleware('auth.web')->group(function () {
     // ── Invoices & Payments ────────────────────────────────────────────────
     Route::prefix('invoices')->name('invoices.')->group(function () {
         Route::get('/',                         [InvoiceController::class, 'index'])->name('index');
-        Route::get('/{id}',                     [InvoiceController::class, 'show'])->name('show');
-        Route::post('/{id}/post',               [InvoiceController::class, 'post'])->name('post');
-        Route::post('/{id}/cancel',             [InvoiceController::class, 'cancel'])->name('cancel');
-        Route::get('/{id}/pay',                 [InvoiceController::class, 'payForm'])->name('pay.form');
-        Route::post('/{id}/pay',                [InvoiceController::class, 'pay'])->name('pay');
-        Route::post('/from-delivery/{did}',     [InvoiceController::class, 'createFromDelivery'])->name('createFromDelivery');
-        Route::post('/from-receipt/{rid}',      [InvoiceController::class, 'createFromReceipt'])->name('createFromReceipt');
+        Route::get('/{id}',                     [InvoiceController::class, 'show'])->where('id', '.*')->name('show');
+        Route::post('/{id}/post',               [InvoiceController::class, 'post'])->where('id', '.*')->name('post');
+        Route::post('/{id}/cancel',             [InvoiceController::class, 'cancel'])->where('id', '.*')->name('cancel');
+        Route::get('/{id}/pay',                 [InvoiceController::class, 'payForm'])->where('id', '.*')->name('pay.form');
+        Route::post('/{id}/pay',                [InvoiceController::class, 'pay'])->where('id', '.*')->name('pay');
+        Route::post('/from-delivery/{did}',     [InvoiceController::class, 'createFromDelivery'])->where('did', '.*')->name('createFromDelivery');
+        Route::post('/from-receipt/{rid}',      [InvoiceController::class, 'createFromReceipt'])->where('rid', '.*')->name('createFromReceipt');
     });
 
     // ── Returns / Retur Barang ─────────────────────────────────────────────
@@ -159,8 +159,8 @@ Route::middleware('auth.web')->group(function () {
         Route::get('/',                 [InvoiceController::class, 'returnsIndex'])->name('index');
         Route::get('/create',           [InvoiceController::class, 'returnCreate'])->name('create');
         Route::post('/',                [InvoiceController::class, 'returnStore'])->name('store');
-        Route::get('/{id}',             [InvoiceController::class, 'returnShow'])->name('show');
-        Route::post('/{id}/validate',   [InvoiceController::class, 'returnValidate'])->name('validate');
+        Route::get('/{id}',             [InvoiceController::class, 'returnShow'])->where('id', '.*')->name('show');
+        Route::post('/{id}/validate',   [InvoiceController::class, 'returnValidate'])->where('id', '.*')->name('validate');
     });
 
     // ── Inventory / Persediaan ─────────────────────────────────────────────
@@ -169,8 +169,8 @@ Route::middleware('auth.web')->group(function () {
         Route::get('/transfer',                 [InventoryController::class, 'transferForm'])->name('transfer.create');
         Route::post('/transfer',                [InventoryController::class, 'storeTransfer'])->name('transfer.store');
         Route::get('/deliveries',               [InventoryController::class, 'deliveries'])->name('deliveries');
-        Route::get('/deliveries/{did}',         [InventoryController::class, 'showDelivery'])->name('delivery.show');
-        Route::post('/deliveries/{did}/validate', [InventoryController::class, 'validateDelivery'])->name('delivery.validate');
+        Route::get('/deliveries/{did}',         [InventoryController::class, 'showDelivery'])->where('did', '.*')->name('delivery.show');
+        Route::post('/deliveries/{did}/validate', [InventoryController::class, 'validateDelivery'])->where('did', '.*')->name('delivery.validate');
     });
 
     // ── Purchase / Pembelian ───────────────────────────────────────────────
@@ -185,8 +185,8 @@ Route::middleware('auth.web')->group(function () {
         Route::post('/{id}/cancel',             [PurchaseController::class, 'cancel'])->name('cancel');
         Route::get('/{id}/receipt',             [PurchaseController::class, 'createReceipt'])->name('receipt.create');
         Route::post('/{id}/receipt',            [PurchaseController::class, 'storeReceipt'])->name('receipt.store');
-        Route::get('/receipts/{rid}',           [PurchaseController::class, 'showReceipt'])->name('receipt.show');
-        Route::post('/receipts/{rid}/validate', [PurchaseController::class, 'validateReceipt'])->name('receipt.validate');
+        Route::get('/receipts/{rid}',           [PurchaseController::class, 'showReceipt'])->where('rid', '.*')->name('receipt.show');
+        Route::post('/receipts/{rid}/validate', [PurchaseController::class, 'validateReceipt'])->where('rid', '.*')->name('receipt.validate');
     });
 
     // ── Accounting / Akuntansi ─────────────────────────────────────────────
@@ -194,7 +194,7 @@ Route::middleware('auth.web')->group(function () {
         Route::get('/',                 [AccountingController::class, 'index'])->name('index');
         Route::get('/ledger',           [AccountingController::class, 'ledger'])->name('ledger');
         Route::get('/entries',          [AccountingController::class, 'entries'])->name('entries');
-        Route::get('/entries/{id}',     [AccountingController::class, 'showEntry'])->name('entry.show');
+        Route::get('/entries/{id}',     [AccountingController::class, 'showEntry'])->where('id', '.*')->name('entry.show');
     });
 
     // ── Employees / Karyawan ───────────────────────────────────────────────
@@ -225,11 +225,11 @@ Route::middleware('auth.web')->group(function () {
         Route::get('/',                 [TableOrderController::class, 'index'])->name('index');
         Route::get('/create',           [TableOrderController::class, 'create'])->name('create');
         Route::post('/',                [TableOrderController::class, 'store'])->name('store');
-        Route::get('/{id}',             [TableOrderController::class, 'show'])->name('show');
-        Route::post('/{id}/line',       [TableOrderController::class, 'addLine'])->name('line.add');
-        Route::post('/{id}/serve',      [TableOrderController::class, 'serve'])->name('serve');
-        Route::post('/{id}/bill',       [TableOrderController::class, 'bill'])->name('bill');
-        Route::post('/{id}/cancel',     [TableOrderController::class, 'cancel'])->name('cancel');
+        Route::get('/{id}',             [TableOrderController::class, 'show'])->where('id', '.*')->name('show');
+        Route::post('/{id}/line',       [TableOrderController::class, 'addLine'])->where('id', '.*')->name('line.add');
+        Route::post('/{id}/serve',      [TableOrderController::class, 'serve'])->where('id', '.*')->name('serve');
+        Route::post('/{id}/bill',       [TableOrderController::class, 'bill'])->where('id', '.*')->name('bill');
+        Route::post('/{id}/cancel',     [TableOrderController::class, 'cancel'])->where('id', '.*')->name('cancel');
     });
 
     // ── Contacts / Customers & Vendors ─────────────────────────────────────
