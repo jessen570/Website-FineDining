@@ -218,3 +218,31 @@ Sistem memuat 36 skenario pengujian ketat (*36 Test Cases*) yang memverifikasi i
    - `FRONTEND_URL=https://maisonaster.vercel.app`
 3. Jalankan `php artisan migrate --force` dan seeder baseline.
 
+---
+
+## 9. Tabel Kontribusi Anggota Kelompok (*Group Roles & Contributions*)
+
+Mengacu pada lembar penugasan skenario *Maison Aster Fine Dining* (Halaman 2):
+
+| Anggota | Peran Fungsional (*Functional Role*) | Kepemilikan Modul (*Module Ownership*) | Fitur Dibangun (*Build Scope*) | Skenario Diuji (*Run Tests*) | Tanggung Jawab Utama & QA Sign-Off |
+|:---|:---|:---|:---|:---|:---|
+| **Anggota 1** | Product Owner / Project Manager / Business Analyst | CRM; Sales | Trace SR-01–SR-08, SR-15; build F-02, F-05–F-07, F-11 | T-03/04, T-09–T-12 | Prioritas fitur, penyusunan Decision Log, konfirmasi Sales Order & Credit Exposure check |
+| **Anggota 2** | Lead AI Developer | Purchase; Inventory | F-03, F-08, F-09, F-12, F-13, F-20 | T-05/06, T-13–T-16, T-19–T-22 | Data flow procurement, mutasi persediaan, partial delivery & backorder, receipt QC |
+| **Anggota 3** | UI/UX Lead | Employees; Dining Booking & Layanan Meja | F-01, F-04, F-17, F-18 | T-01/02, T-07/08, T-29–T-32 | Wireframe S-01 s.d. S-18, active employee validation, booking slot & 15m buffer, table service |
+| **Anggota 4** | **QA & Deployment Lead** | **Accounting; Invoicing** | **Build F-10, F-14–F-16, F-19, F-22** | **T-17/18, T-23–T-28, T-33/34** | **Penagihan berbasis penyerahan, 3-way match, jurnal GL seimbang, pembayaran parsial, retur & Credit Note, QA sign-off seluruh T (T-01 s.d. T-36), serta Public Deployment** |
+
+---
+
+## 10. Sertifikat & Status QA Sign-Off Resmi
+
+Seluruh 36 skenario pengujian bisnis (*T-01 s.d. T-36*) telah berhasil diverifikasi dan disahkan oleh **QA & Deployment Lead** dengan hasil **100% PASS**:
+
+* **Laporan Lengkap**: [QA_SIGNOFF_REPORT.md](file:///c:/Users/LENOVO/Downloads/Testingapp/Website-FineDining/backend/QA_SIGNOFF_REPORT.md)
+* **Dataset Bukti Mesin (JSON)**: [test_results_master.json](file:///c:/Users/LENOVO/Downloads/Testingapp/Website-FineDining/backend/test_results_master.json)
+* **Perintah Menjalankan Uji Otomatis**:
+  ```powershell
+  cd backend
+  php tests/qa_signoff_master.php
+  ```
+
+

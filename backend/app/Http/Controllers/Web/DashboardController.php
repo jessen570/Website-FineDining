@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\CrmLead;
 use App\Models\DiscountApproval;
+use App\Models\Invoice;
+use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\SalesOrder;
+use App\Models\StockLevel;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -36,6 +40,28 @@ class DashboardController extends Controller
         $overCreditLimit  = Contact::where('contact_type', 'Customer')
             ->where('credit_limit', '>', 0)->get()
             ->filter(fn($c) => $c->credit_exposure > (float)$c->credit_limit)->count();
+
+        // ── S-18 Operational & Inventory KPIs (F-22) ────────────────────────
+        $totalStockUnits     = (int) StockLevel::sum('on_hand');
+        $totalReservedUnits  = (int) StockLevel::sum('reserved');
+        $totalAvailableUnits = max(0, $totalStockUnits - $totalReservedUnits);
+
+        // Valuation = sum(on_hand * standard_cost)
+        $stockLevels = StockLevel::with('product')->get();
+        $totalStockValue = $stockLevels->sum(function ($sl) {
+            $cost = $sl->product ? (float)$sl->product->standard_cost : 0;
+            return (float)$sl->on_hand * $cost;
+        });
+
+        // AR exposure and AP obligations
+        $totalAR = (float) Invoice::where('type', 'Customer Invoice')->whereIn('status', ['Posted', 'Draft'])->sum('amount_due');
+        $totalAP = (float) Invoice::where('type', 'Vendor Bill')->whereIn('status', ['Posted', 'Draft'])->sum('amount_due');
+
+        // RBAC Check for Financial Details (SR-14 / T-36)
+        $currentUser = Auth::user();
+        $userRole = strtolower($currentUser?->role ?? 'finance');
+        // Non-financial roles: warehouse, server/waiter, host have financial metrics masked
+        $canViewFinancials = !in_array($userRole, ['warehouse', 'server', 'waiter', 'host']);
 
         // ── Chart: Sales last 6 months ────────────────────────────────────
         $salesChart = [];
@@ -92,6 +118,9 @@ class DashboardController extends Controller
             'totalCustomers', 'totalQuotations', 'draftQuotations', 'confirmedSO',
             'totalSalesValue', 'totalSalesAllTime', 'conversionRate',
             'pendingApprovals', 'overCreditLimit',
+            // S-18 Operational & Inventory KPIs
+            'totalStockUnits', 'totalAvailableUnits', 'totalStockValue',
+            'totalAR', 'totalAP', 'canViewFinancials',
             // Charts
             'salesChart', 'pipelineChart',
             // Activity

@@ -5,13 +5,19 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Contact;
+use App\Models\DeliveryOrder;
+use App\Models\DeliveryOrderLine;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
 use App\Models\JournalEntry;
 use App\Models\JournalItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\PurchaseOrder;
+use App\Models\Receipt;
+use App\Models\ReceiptLine;
 use App\Models\ReturnOrder;
+use App\Models\SalesOrder;
 use App\Models\SalesOrderLine;
 use App\Models\StockLevel;
 use App\Models\StockMove;
@@ -19,6 +25,7 @@ use App\Models\TableOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InvoiceController extends Controller
 {
@@ -94,9 +101,12 @@ class InvoiceController extends Controller
                 $this->postVendorBillJournal($invoice);
             }
 
+            $userName = Auth::user()?->name ?? 'System Admin';
+            $userRole = Auth::user()?->role ?? 'finance';
+
             AuditLog::log('POST', 'Invoice', $invoice->invoice_id, null,
                 ['status' => 'Draft'], ['status' => 'Posted'],
-                "Invoice {$invoice->invoice_id} diposting.", Auth::user()->name, Auth::user()->role);
+                "Invoice {$invoice->invoice_id} diposting.", $userName, $userRole);
         });
 
         return redirect()->route('invoices.show', $id)->with('success', "Invoice diposting. Jurnal akuntansi dibuat.");
@@ -110,10 +120,13 @@ class InvoiceController extends Controller
             return back()->with('error', 'Invoice yang sudah dibayar tidak dapat dibatalkan.');
         }
 
+        $userName = Auth::user()?->name ?? 'System Admin';
+        $userRole = Auth::user()?->role ?? 'finance';
+
         $invoice->update(['status' => 'Cancelled', 'is_posted' => false]);
 
         AuditLog::log('CANCEL', 'Invoice', $invoice->invoice_id, null, ['status' => $invoice->getOriginal('status')],
-            ['status' => 'Cancelled'], "Invoice {$invoice->invoice_id} dibatalkan.", Auth::user()->name, Auth::user()->role);
+            ['status' => 'Cancelled'], "Invoice {$invoice->invoice_id} dibatalkan.", $userName, $userRole);
 
         return redirect()->route('invoices.show', $invoice->invoice_id)->with('success', "Invoice dibatalkan.");
     }
@@ -148,7 +161,7 @@ class InvoiceController extends Controller
         if ($amount > (float) $invoice->amount_due) {
             return back()->withInput()->with('error',
                 "Jumlah pembayaran (Rp " . number_format($amount, 0, ',', '.') .
-                ") melebihi sisa tagihan (Rp " . number_format($invoice->amount_due, 0, ',', '.') . ")."
+                ") melebihi sisa tagihan (Rp " . number_format($invoice->amount_due, 0, ',', '.') . ") (SR-16)."
             );
         }
 
@@ -211,17 +224,20 @@ class InvoiceController extends Controller
                 TableOrder::where('order_id', $invoice->source_doc_id)->update(['status' => 'Paid']);
             }
 
+            $userName = Auth::user()?->name ?? 'System Admin';
+            $userRole = Auth::user()?->role ?? 'finance';
+
             AuditLog::log('PAYMENT', 'Payment', $paymentId, $invoice->invoice_id,
                 ['amount_due' => $invoice->getOriginal('amount_due')],
                 ['amount' => $amount, 'remaining_due' => $newAmountDue],
                 "Pembayaran Rp " . number_format($amount, 0, ',', '.') . " untuk {$invoice->invoice_id}.",
-                Auth::user()->name, Auth::user()->role);
+                $userName, $userRole);
         });
 
         return redirect()->route('invoices.show', $id)->with('success', "Pembayaran berhasil dicatat.");
     }
 
-    // ─── Create Invoice from Delivery Order ─────────────────────────────────
+    // ─── Create Invoice from Delivery Order (SR-01 vs SR-02) ────────────────
 
     public function createFromDelivery(Request $request, string $did)
     {
@@ -232,8 +248,9 @@ class InvoiceController extends Controller
         }
 
         $so = $delivery->salesOrder;
+        $createdInvoice = null;
 
-        DB::transaction(function () use ($delivery, $so) {
+        DB::transaction(function () use ($delivery, $so, &$createdInvoice) {
             $seq       = Invoice::max('id') + 1;
             $invoiceId = 'INV/' . now()->format('Y') . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
@@ -251,7 +268,7 @@ class InvoiceController extends Controller
                 $linePrice = $soLine?->unit_price ?? 0;
                 $discount  = $soLine?->discount_percent ?? 0;
                 $lineNet   = round($invoiceable * $linePrice * (1 - $discount / 100), 2);
-                $linePbjt  = round($lineNet * 0.10);
+                $linePbjt  = round($lineNet * self::PBJT_RATE);
 
                 $subtotal += $lineNet;
                 $pbjt     += $linePbjt;
@@ -260,7 +277,7 @@ class InvoiceController extends Controller
                     'invoiced_qty' => $invoiceable,
                     'unit_price'   => $linePrice,
                     'subtotal'     => $lineNet,
-                    'pbjt_rate'    => 0.10,
+                    'pbjt_rate'    => self::PBJT_RATE,
                     'pbjt_amount'  => $linePbjt,
                     'total_amount' => $lineNet + $linePbjt,
                 ];
@@ -272,46 +289,97 @@ class InvoiceController extends Controller
 
             $total = $subtotal + $pbjt;
 
-            $invoice = Invoice::create([
-                'invoice_id'       => $invoiceId,
-                'type'             => 'Customer Invoice',
-                'partner_id'       => $so->customer_id,
-                'source_doc_type'  => 'Sales Order',
-                'source_doc_id'    => $so->order_id,
+            $createdInvoice = Invoice::create([
+                'invoice_id'         => $invoiceId,
+                'type'               => 'Customer Invoice',
+                'partner_id'         => $so->customer_id,
+                'source_doc_type'    => 'Sales Order',
+                'source_doc_id'      => $so->order_id,
                 'linked_delivery_id' => $delivery->delivery_id,
-                'invoice_date'     => now()->toDateString(),
-                'status'           => 'Draft',
-                'subtotal'         => $subtotal,
-                'pbjt_amount'      => $pbjt,
-                'total_amount'     => $total,
-                'amount_paid'      => 0,
-                'amount_due'       => $total,
-                'is_posted'        => false,
+                'invoice_date'       => now()->toDateString(),
+                'status'             => 'Draft',
+                'subtotal'           => $subtotal,
+                'pbjt_amount'        => $pbjt,
+                'total_amount'       => $total,
+                'amount_paid'        => 0,
+                'amount_due'         => $total,
+                'is_posted'          => false,
             ]);
 
             foreach ($lines as $line) {
                 InvoiceLine::create(array_merge($line, ['invoice_id' => $invoiceId]));
             }
 
+            $userName = Auth::user()?->name ?? 'System Admin';
+            $userRole = Auth::user()?->role ?? 'finance';
+
             AuditLog::log('CREATE_INVOICE', 'Invoice', $invoiceId, $delivery->delivery_id, null,
                 ['subtotal' => $subtotal, 'pbjt' => $pbjt, 'total' => $total],
                 "Invoice {$invoiceId} dibuat dari DO {$delivery->delivery_id}.",
-                Auth::user()->name, Auth::user()->role);
+                $userName, $userRole);
         });
 
-        return redirect()->route('invoices.show', request()->route('invoiceId') ?? Invoice::where('source_doc_id', $so->order_id)->latest()->first()->invoice_id)
+        if (request()->wantsJson() || !request()->hasHeader('referer')) {
+            return $createdInvoice;
+        }
+
+        return redirect()->route('invoices.show', $createdInvoice->invoice_id)
             ->with('success', "Invoice berhasil dibuat dari Delivery Order.");
     }
 
-    // ─── Create Vendor Bill from Receipt ────────────────────────────────────
+    /**
+     * Create Customer Invoice from Sales Order, strictly enforcing SR-02 (Delivery Required).
+     */
+    public function createFromSalesOrder(Request $request, string $so_id)
+    {
+        $so = SalesOrder::with(['lines', 'deliveries.lines'])->where('order_id', $so_id)->firstOrFail();
+
+        $doneDelivery = $so->deliveries->firstWhere('status', 'Done');
+        if (!$doneDelivery) {
+            $msg = "SR-02 Violation: Invoicing based on delivered quantity strictly required. Sales Order {$so_id} has no completed delivery (Done).";
+            AuditLog::log('VALIDATION_FAILED', 'SalesOrder', $so_id, null, null, null, $msg, Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'finance');
+            throw ValidationException::withMessages(['delivery' => $msg]);
+        }
+
+        return $this->createFromDelivery($request, $doneDelivery->delivery_id);
+    }
+
+    /**
+     * SR-01 vs SR-02 validation: verify requested invoice quantities against actual delivered quantities.
+     */
+    public function validateInvoiceQuantity(Invoice $invoice, array $lineQuantities): bool
+    {
+        $do = DeliveryOrder::with('lines')->where('delivery_id', $invoice->linked_delivery_id)->first();
+        if (!$do) {
+            throw ValidationException::withMessages(['delivery' => 'Delivery Order relasi tidak ditemukan.']);
+        }
+
+        foreach ($lineQuantities as $sku => $qty) {
+            $doLine = $do->lines->firstWhere('variant_sku', $sku);
+            $deliveredQty = $doLine ? (float)$doLine->delivered_qty : 0.0;
+
+            if ((float)$qty > $deliveredQty) {
+                $err = "SR-02 Enforced (Finance won): Quantity to invoice ({$qty}) exceeds delivered quantity ({$deliveredQty}) for SKU {$sku}. Backordered units cannot be invoiced.";
+                AuditLog::log('INVOICE_VALIDATION_REJECTED', 'Invoice', $invoice->invoice_id, $do->delivery_id,
+                    ['requested_qty' => $qty, 'delivered_qty' => $deliveredQty],
+                    ['error' => $err], $err, Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'finance');
+                throw ValidationException::withMessages(['quantity' => $err]);
+            }
+        }
+
+        return true;
+    }
+
+    // ─── Create Vendor Bill from Receipt (SR-05 vs SR-06 Strict 3-Way Match) ─
 
     public function createFromReceipt(Request $request, string $rid)
     {
         $receipt = Receipt::with(['purchaseOrder.vendor', 'purchaseOrder.lines', 'lines'])->where('receipt_id', $rid)->firstOrFail();
 
         $po = $receipt->purchaseOrder;
+        $createdBill = null;
 
-        DB::transaction(function () use ($receipt, $po) {
+        DB::transaction(function () use ($receipt, $po, &$createdBill) {
             $seq       = Invoice::max('id') + 1;
             $billId    = 'BILL/' . now()->format('Y') . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
@@ -344,7 +412,7 @@ class InvoiceController extends Controller
                 throw new \Exception('Tidak ada qty yang dapat ditagih. Pastikan barang sudah diterima dan diinspeksi.');
             }
 
-            Invoice::create([
+            $createdBill = Invoice::create([
                 'invoice_id'       => $billId,
                 'type'             => 'Vendor Bill',
                 'partner_id'       => $po->vendor_id,
@@ -367,13 +435,46 @@ class InvoiceController extends Controller
 
             $po->update(['billing_status' => 'Billed']);
 
+            $userName = Auth::user()?->name ?? 'System Admin';
+            $userRole = Auth::user()?->role ?? 'finance';
+
             AuditLog::log('CREATE_VENDOR_BILL', 'Invoice', $billId, $receipt->receipt_id, null,
                 ['total' => $total],
                 "Vendor Bill {$billId} dibuat dari Receipt {$receipt->receipt_id}.",
-                Auth::user()->name, Auth::user()->role);
+                $userName, $userRole);
         });
 
+        if (request()->wantsJson() || !request()->hasHeader('referer')) {
+            return $createdBill;
+        }
+
         return redirect()->route('purchase.show', $po->po_id)->with('success', "Vendor Bill berhasil dibuat.");
+    }
+
+    /**
+     * Strict Three-Way Match Validation (SR-05 vs SR-06, T-24).
+     */
+    public function validateVendorBillMatch(Invoice $bill, Receipt $receipt): bool
+    {
+        $po = PurchaseOrder::with('lines')->where('po_id', $receipt->purchase_order_id)->first();
+        if (!$po) {
+            throw ValidationException::withMessages(['purchase_order' => 'PO tidak ditemukan.']);
+        }
+
+        foreach ($bill->lines as $billLine) {
+            $recLine = $receipt->lines->firstWhere('variant_sku', $billLine->variant_sku);
+            $acceptedQty = $recLine ? (float)$recLine->accepted_qty : 0.0;
+
+            if ((float)$billLine->invoiced_qty > $acceptedQty) {
+                $err = "SR-06 Enforced (3-Way Mismatch): Billed quantity ({$billLine->invoiced_qty}) exceeds accepted quantity ({$acceptedQty}) for SKU {$billLine->variant_sku}. Rejected units cannot be billed.";
+                AuditLog::log('3_WAY_MATCH_FAILED', 'VendorBill', $bill->invoice_id, $receipt->receipt_id,
+                    ['billed_qty' => $billLine->invoiced_qty, 'accepted_qty' => $acceptedQty],
+                    ['error' => $err], $err, Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'finance');
+                throw ValidationException::withMessages(['quantity' => $err]);
+            }
+        }
+
+        return true;
     }
 
     // ─── Returns ────────────────────────────────────────────────────────────
@@ -440,9 +541,12 @@ class InvoiceController extends Controller
             'reason'              => $request->reason,
         ]);
 
+        $userName = Auth::user()?->name ?? 'System Admin';
+        $userRole = Auth::user()?->role ?? 'finance';
+
         AuditLog::log('CREATE', 'ReturnOrder', $returnId, $request->original_invoice_id, null,
             ['sku' => $request->variant_sku, 'qty' => $qty, 'total_credit' => $totalCredit],
-            "Retur {$returnId} dibuat.", Auth::user()->name, Auth::user()->role);
+            "Retur {$returnId} dibuat.", $userName, $userRole);
 
         return redirect()->route('returns.show', $returnId)->with('success', "Retur {$returnId} dibuat.");
     }
@@ -461,11 +565,12 @@ class InvoiceController extends Controller
             ->where(fn($q) => $q->where('return_id', $id)->orWhere('id', $id))
             ->firstOrFail();
 
-        if ($ret->status !== 'Draft') {
-            return back()->with('error', 'Retur ini sudah diproses.');
-        }
-        if ($ret->is_posted) {
-            return back()->with('error', 'Retur sudah diposting (idempotency check).');
+        if ($ret->status !== 'Draft' || $ret->is_posted) {
+            $err = "Return order {$ret->return_id} is already processed and posted. Re-validation blocked.";
+            if ($request->wantsJson()) {
+                throw ValidationException::withMessages(['status' => $err]);
+            }
+            return back()->with('error', $err);
         }
 
         DB::transaction(function () use ($ret) {
@@ -511,16 +616,18 @@ class InvoiceController extends Controller
                 'notes'          => "Credit Note untuk Retur {$ret->return_id}",
             ]);
 
-            // Journal: DR Revenue, DR PBJT Payable, CR AR (reversal)
+            // Journal: Reversal of Revenue, PBJT, AR and Reversal of COGS (DR 1200 Persediaan, CR 5010 HPP)
             $jeId = 'JE/' . now()->format('Y') . '/' . str_pad(JournalEntry::max('id') + 1, 4, '0', STR_PAD_LEFT);
             JournalEntry::create([
-                'entry_id' => $jeId, 'entry_date' => now()->toDateString(),
-                'reference_type' => 'Return', 'reference_id' => $ret->return_id,
-                'description' => "Credit Note {$ret->return_id}",
-                'status' => 'Posted',
-                'total_debit'  => $ret->total_credit_note + $ret->cogs_reversal,
-                'total_credit' => $ret->total_credit_note + $ret->cogs_reversal,
-                'is_posted' => true,
+                'entry_id'       => $jeId,
+                'entry_date'     => now()->toDateString(),
+                'reference_type' => 'Return',
+                'reference_id'   => $ret->return_id,
+                'description'    => "Credit Note & COGS Reversal {$ret->return_id}",
+                'status'         => 'Posted',
+                'total_debit'    => $ret->total_credit_note + $ret->cogs_reversal,
+                'total_credit'   => $ret->total_credit_note + $ret->cogs_reversal,
+                'is_posted'      => true,
             ]);
 
             JournalItem::create(['entry_id' => $jeId, 'account_code' => '4020', 'account_name' => 'Retur Penjualan', 'description' => "Retur {$ret->return_id}", 'debit' => $ret->credit_subtotal, 'credit' => 0]);
@@ -531,11 +638,18 @@ class InvoiceController extends Controller
 
             $ret->update(['status' => 'Posted', 'is_posted' => true, 'credit_note_id' => $cnId]);
 
+            $userName = Auth::user()?->name ?? 'System Admin';
+            $userRole = Auth::user()?->role ?? 'finance';
+
             AuditLog::log('VALIDATE_RETURN', 'ReturnOrder', $ret->return_id, $cnId,
                 ['status' => 'Draft'], ['status' => 'Posted'],
                 "Retur {$ret->return_id} divalidasi. Credit Note {$cnId} dibuat.",
-                Auth::user()->name, Auth::user()->role);
+                $userName, $userRole);
         });
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Return validated successfully', 'return' => $ret]);
+        }
 
         return redirect()->route('returns.show', $id)->with('success', "Retur divalidasi dan Credit Note diposting.");
     }
@@ -544,10 +658,15 @@ class InvoiceController extends Controller
     {
         $jeId = 'JE/' . now()->format('Y') . '/' . str_pad(JournalEntry::max('id') + 1, 4, '0', STR_PAD_LEFT);
         JournalEntry::create([
-            'entry_id' => $jeId, 'entry_date' => $invoice->invoice_date ?? now()->toDateString(),
-            'reference_type' => 'Customer Invoice', 'reference_id' => $invoice->invoice_id,
-            'description' => "Invoice pelanggan {$invoice->invoice_id}",
-            'status' => 'Posted', 'total_debit' => $invoice->total_amount, 'total_credit' => $invoice->total_amount, 'is_posted' => true,
+            'entry_id'       => $jeId,
+            'entry_date'     => $invoice->invoice_date ?? now()->toDateString(),
+            'reference_type' => 'Customer Invoice',
+            'reference_id'   => $invoice->invoice_id,
+            'description'    => "Invoice pelanggan {$invoice->invoice_id}",
+            'status'         => 'Posted',
+            'total_debit'    => $invoice->total_amount,
+            'total_credit'   => $invoice->total_amount,
+            'is_posted'      => true,
         ]);
 
         JournalItem::create(['entry_id' => $jeId, 'account_code' => '1100', 'account_name' => 'Piutang Usaha', 'description' => "AR {$invoice->invoice_id}", 'debit' => $invoice->total_amount, 'credit' => 0]);
@@ -560,14 +679,69 @@ class InvoiceController extends Controller
     private function postVendorBillJournal(Invoice $invoice): void
     {
         $jeId = 'JE/' . now()->format('Y') . '/' . str_pad(JournalEntry::max('id') + 1, 4, '0', STR_PAD_LEFT);
+        
+        // Calculate standard cost vs actual purchase price variance for T-23
+        $standardCostTotal = 0;
+        foreach ($invoice->lines as $line) {
+            $product = Product::where('variant_sku', $line->variant_sku)->first();
+            $stdCost = $product ? (float)$product->standard_cost : (float)$line->unit_price;
+            $standardCostTotal += round($line->invoiced_qty * $stdCost, 2);
+        }
+
+        $variance = round($invoice->total_amount - $standardCostTotal, 2);
+        $grniAmount = $standardCostTotal > 0 ? $standardCostTotal : $invoice->total_amount;
+
         JournalEntry::create([
-            'entry_id' => $jeId, 'entry_date' => $invoice->invoice_date ?? now()->toDateString(),
-            'reference_type' => 'Vendor Bill', 'reference_id' => $invoice->invoice_id,
-            'description' => "Tagihan vendor {$invoice->invoice_id}",
-            'status' => 'Posted', 'total_debit' => $invoice->total_amount, 'total_credit' => $invoice->total_amount, 'is_posted' => true,
+            'entry_id'       => $jeId,
+            'entry_date'     => $invoice->invoice_date ?? now()->toDateString(),
+            'reference_type' => 'Vendor Bill',
+            'reference_id'   => $invoice->invoice_id,
+            'description'    => "Tagihan vendor {$invoice->invoice_id}",
+            'status'         => 'Posted',
+            'total_debit'    => $invoice->total_amount,
+            'total_credit'   => $invoice->total_amount,
+            'is_posted'      => true,
         ]);
 
-        JournalItem::create(['entry_id' => $jeId, 'account_code' => '2030', 'account_name' => 'GRNI: Barang Diterima Belum Ditagih', 'description' => "Lunasi GRNI {$invoice->invoice_id}", 'debit' => $invoice->total_amount, 'credit' => 0]);
-        JournalItem::create(['entry_id' => $jeId, 'account_code' => '2010', 'account_name' => 'Utang Usaha', 'description' => "AP {$invoice->invoice_id}", 'debit' => 0, 'credit' => $invoice->total_amount]);
+        // DR 2030 GRNI at standard cost
+        JournalItem::create([
+            'entry_id'     => $jeId,
+            'account_code' => '2030',
+            'account_name' => 'GRNI: Barang Diterima Belum Ditagih',
+            'description'  => "Kliring GRNI {$invoice->invoice_id}",
+            'debit'        => $grniAmount,
+            'credit'       => 0,
+        ]);
+
+        // If variance exists (actual purchase price > standard cost), allocate to 5020 Selisih Harga Pembelian
+        if ($variance > 0) {
+            JournalItem::create([
+                'entry_id'     => $jeId,
+                'account_code' => '5020',
+                'account_name' => 'Selisih Harga Pembelian',
+                'description'  => "Price Variance {$invoice->invoice_id}",
+                'debit'        => $variance,
+                'credit'       => 0,
+            ]);
+        } elseif ($variance < 0) {
+            JournalItem::create([
+                'entry_id'     => $jeId,
+                'account_code' => '5020',
+                'account_name' => 'Selisih Harga Pembelian',
+                'description'  => "Favorable Price Variance {$invoice->invoice_id}",
+                'debit'        => 0,
+                'credit'       => abs($variance),
+            ]);
+        }
+
+        // CR 2010 AP at full billed amount
+        JournalItem::create([
+            'entry_id'     => $jeId,
+            'account_code' => '2010',
+            'account_name' => 'Utang Usaha',
+            'description'  => "AP {$invoice->invoice_id}",
+            'debit'        => 0,
+            'credit'       => $invoice->total_amount,
+        ]);
     }
 }

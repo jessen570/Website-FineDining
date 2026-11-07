@@ -151,6 +151,7 @@ Route::middleware('auth.web')->group(function () {
         Route::get('/{id}/pay',                 [InvoiceController::class, 'payForm'])->where('id', '.*')->name('pay.form');
         Route::post('/{id}/pay',                [InvoiceController::class, 'pay'])->where('id', '.*')->name('pay');
         Route::post('/from-delivery/{did}',     [InvoiceController::class, 'createFromDelivery'])->where('did', '.*')->name('createFromDelivery');
+        Route::post('/from-so/{so_id}',         [InvoiceController::class, 'createFromSalesOrder'])->where('so_id', '.*')->name('createFromSO');
         Route::post('/from-receipt/{rid}',      [InvoiceController::class, 'createFromReceipt'])->where('rid', '.*')->name('createFromReceipt');
     });
 
