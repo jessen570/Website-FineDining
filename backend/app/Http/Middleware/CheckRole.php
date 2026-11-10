@@ -34,7 +34,7 @@ class CheckRole
         $allowedRoles = array_map('strtolower', $roles);
 
         if (!in_array(strtolower($user->role), $allowedRoles)) {
-            // Log access violation in audit logs (SR-14, SR-24, T-02, T-36)
+            // Log access violation
             AuditLog::log(
                 'ACCESS_DENIED',
                 'Route',
@@ -47,16 +47,16 @@ class CheckRole
                 $user->role
             );
 
-            return response()->json([
-                'success' => false,
-                'message' => "Access denied. Role '{$user->role}' is not authorized to access this resource.",
-                'audit' => [
-                    'actor' => $user->name,
-                    'role' => $user->role,
-                    'action' => 'ACCESS_DENIED',
-                    'timestamp' => now()->toIso8601String(),
-                ]
-            ], 403);
+            // API requests → JSON 403
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Access denied. Role '{$user->role}' is not authorized.",
+                ], 403);
+            }
+
+            // Web requests → abort dengan halaman 403
+            abort(403, "Akses ditolak. Peran '{$user->role}' tidak memiliki izin untuk halaman ini.");
         }
 
         return $next($request);

@@ -298,4 +298,38 @@ class TableOrderController extends Controller
         $pbjt      = $order->lines->sum('pbjt_amount');
         $order->update(['subtotal' => $subtotal, 'pbjt_amount' => $pbjt, 'gross_amount' => $subtotal + $pbjt]);
     }
+
+    /**
+     * SR-23: Set split_count. Jumlah subtotal + PBJT seluruh bagian = order total.
+     * Hanya mengatur pembagian tampilan — tidak menduplikasi item atau subtotal.
+     */
+    public function splitBill(Request $request, string $id)
+    {
+        $order = TableOrder::where(fn($q) => $q->where('order_id', $id)->orWhere('id', $id))->firstOrFail();
+
+        if (!in_array($order->status, ['Open', 'Served'])) {
+            return back()->with('error', 'Split bill hanya dapat diatur saat order masih Open atau Served.');
+        }
+
+        if ($order->invoices()->where('status', '!=', 'Cancelled')->exists()) {
+            return back()->with('error', 'Invoice sudah dibuat — split bill tidak dapat diubah.');
+        }
+
+        $request->validate([
+            'split_count' => 'required|integer|min:1|max:10',
+        ]);
+
+        $splitCount = (int) $request->split_count;
+        $order->update(['split_count' => $splitCount]);
+
+        AuditLog::log('SPLIT_BILL', 'TableOrder', $order->order_id, null,
+            ['split_count' => $order->getOriginal('split_count')],
+            ['split_count' => $splitCount],
+            "Split bill {$order->order_id} diatur menjadi {$splitCount} bagian. Total tetap Rp " . number_format($order->gross_amount, 0, ',', '.') . " (SR-23).",
+            Auth::user()->name, Auth::user()->role);
+
+        $perBagian = number_format($order->gross_amount / $splitCount, 0, ',', '.');
+        return redirect()->route('table-orders.show', $id)
+            ->with('success', "Tagihan dibagi {$splitCount} bagian. Per bagian: Rp {$perBagian} (termasuk PBJT, SR-23).");
+    }
 }

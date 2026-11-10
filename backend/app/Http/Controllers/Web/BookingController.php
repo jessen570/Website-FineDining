@@ -69,12 +69,14 @@ class BookingController extends Controller
 
         $startTime = Carbon::parse($request->booking_date . ' ' . $request->start_time);
 
-        // SR-04 & SR-22: Check conflict
-        $conflict = Booking::checkConflict($request->table_id, $startTime);
+        // SR-04 (regular) & SR-03 (VIP 30-min overlap allowed) & SR-22 (135 min window)
+        $isVip    = $request->boolean('is_vip');
+        $conflict = Booking::checkConflict($request->table_id, $startTime, null, $isVip);
         if ($conflict) {
-            return back()->withInput()->with('error',
-                "Meja {$request->table_id} sudah dipesan pada waktu tersebut (Booking: {$conflict->booking_id}). Pilih meja atau waktu lain."
-            );
+            $msg = $isVip
+                ? "Meja {$request->table_id} tidak dapat dikonfirmasi: irisan waktu dengan reservasi {$conflict->booking_id} melebihi 30 menit (SR-03 VIP)."
+                : "Meja {$request->table_id} sudah dipesan pada waktu tersebut (Booking: {$conflict->booking_id}). Pilih meja atau waktu lain (SR-04).";
+            return back()->withInput()->with('error', $msg);
         }
 
         $seq       = Booking::max('id') + 1;
@@ -143,12 +145,14 @@ class BookingController extends Controller
 
         $startTime = Carbon::parse($request->booking_date . ' ' . $request->start_time);
 
-        // Re-check conflict excluding this booking
-        $conflict = Booking::checkConflict($request->table_id, $startTime, $id);
+        // Re-check conflict excluding this booking (SR-03 for VIP, SR-04 for regular)
+        $isVip    = $request->boolean('is_vip', $booking->is_vip);
+        $conflict = Booking::checkConflict($request->table_id, $startTime, $id, $isVip);
         if ($conflict) {
-            return back()->withInput()->with('error',
-                "Meja {$request->table_id} sudah dipesan pada waktu tersebut (Booking: {$conflict->booking_id})."
-            );
+            $msg = $isVip
+                ? "Meja {$request->table_id} tidak dapat dikonfirmasi: irisan waktu dengan reservasi {$conflict->booking_id} melebihi 30 menit (SR-03 VIP)."
+                : "Meja {$request->table_id} sudah dipesan pada waktu tersebut (Booking: {$conflict->booking_id}) (SR-04).";
+            return back()->withInput()->with('error', $msg);
         }
 
         $before = $booking->toArray();
@@ -178,7 +182,12 @@ class BookingController extends Controller
             return back()->with('error', 'Hanya reservasi berstatus Draft yang dapat dikonfirmasi.');
         }
 
-        $conflict = Booking::checkConflict($booking->table_id, Carbon::parse($booking->start_time), $booking->booking_id);
+        $conflict = Booking::checkConflict(
+            $booking->table_id,
+            Carbon::parse($booking->start_time),
+            $booking->booking_id,
+            (bool) $booking->is_vip
+        );
         if ($conflict) {
             return back()->with('error', "Konfirmasi gagal: konflik dengan reservasi {$conflict->booking_id}.");
         }

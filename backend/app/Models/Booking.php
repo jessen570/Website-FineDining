@@ -56,13 +56,26 @@ class Booking extends Model
 
     /**
      * Check if a proposed booking window (start_time to buffer_end_time)
-     * conflicts with any confirmed booking on the same table (SR-04 & SR-22).
+     * conflicts with any confirmed booking on the same table.
+     *
+     * SR-22: each booking = 120 min service + 15 min buffer (total 135 min window)
+     * SR-04: regular bookings — reject any overlap
+     * SR-03: VIP bookings — allow up to 30 min overlap with existing bookings
+     *
+     * @param string $tableId
+     * @param Carbon $startTime    Proposed start time
+     * @param string|null $excludeBookingId  Exclude this booking from check (for updates)
+     * @param bool $isVip          Whether the new booking is VIP (allows 30 min overlap)
      */
-    public static function checkConflict(string $tableId, Carbon $startTime, ?string $excludeBookingId = null): ?self
-    {
-        $bufferEnd = $startTime->copy()->addMinutes(135); // 120m service + 15m cleaning buffer
+    public static function checkConflict(
+        string $tableId,
+        Carbon $startTime,
+        ?string $excludeBookingId = null,
+        bool $isVip = false
+    ): ?self {
+        $bufferEnd = $startTime->copy()->addMinutes(135); // 120m service + 15m cleaning
 
-        return self::where('table_id', $tableId)
+        $query = self::where('table_id', $tableId)
             ->whereIn('status', ['Confirmed', 'Checked-In'])
             ->when($excludeBookingId, fn($q) => $q->where('booking_id', '!=', $excludeBookingId))
             ->where(function ($query) use ($startTime, $bufferEnd) {
@@ -72,8 +85,36 @@ class Booking extends Model
                         $sub->where('start_time', '<=', $startTime)
                             ->where('buffer_end_time', '>=', $bufferEnd);
                     });
-            })
-            ->first();
+            });
+
+        $conflicts = $query->get();
+
+        if ($conflicts->isEmpty()) {
+            return null; // No conflict
+        }
+
+        // SR-03: For VIP bookings, allow overlap up to 30 minutes
+        // An overlap is acceptable if the overlap duration <= 30 minutes for all conflicts
+        if ($isVip) {
+            foreach ($conflicts as $existing) {
+                $existingStart  = Carbon::parse($existing->start_time);
+                $existingBuffer = Carbon::parse($existing->buffer_end_time);
+
+                // Calculate actual overlap duration in minutes
+                $overlapStart = $startTime->max($existingStart);
+                $overlapEnd   = $bufferEnd->min($existingBuffer);
+                $overlapMinutes = max(0, $overlapStart->diffInMinutes($overlapEnd));
+
+                // SR-03: VIP allows max 30 min overlap
+                if ($overlapMinutes > 30) {
+                    return $existing; // Still a conflict — overlap exceeds 30 min
+                }
+            }
+            return null; // All overlaps within 30-min VIP allowance
+        }
+
+        // SR-04: Regular booking — any overlap is a conflict
+        return $conflicts->first();
     }
 }
 

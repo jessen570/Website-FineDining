@@ -53,9 +53,13 @@ class DashboardController extends Controller
             return (float)$sl->on_hand * $cost;
         });
 
-        // AR exposure and AP obligations
-        $totalAR = (float) Invoice::where('type', 'Customer Invoice')->whereIn('status', ['Posted', 'Draft'])->sum('amount_due');
-        $totalAP = (float) Invoice::where('type', 'Vendor Bill')->whereIn('status', ['Posted', 'Draft'])->sum('amount_due');
+        // AR exposure and AP obligations — include opening balances from Contacts (SR-19/T-35)
+        $openingAR   = (float) \App\Models\Contact::where('contact_type', 'Customer')->sum('opening_ar');
+        $openingAP   = (float) \App\Models\Contact::where('contact_type', 'Vendor')->sum('opening_ap');
+        $invoiceAR   = (float) Invoice::where('type', 'Customer Invoice')->whereIn('status', ['Posted', 'Draft'])->sum('amount_due');
+        $invoiceAP   = (float) Invoice::where('type', 'Vendor Bill')->whereIn('status', ['Posted', 'Draft'])->sum('amount_due');
+        $totalAR     = round($openingAR + $invoiceAR, 2);
+        $totalAP     = round($openingAP + $invoiceAP, 2);
 
         // RBAC Check for Financial Details (SR-14 / T-36)
         $currentUser = Auth::user();

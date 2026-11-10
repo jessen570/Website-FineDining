@@ -56,6 +56,56 @@
         <span class="text-xs text-gray-400 hidden sm:inline">Pembaruan otomatis saat data berubah</span>
     </div>
 
+    {{-- Inventory & Financial KPIs (SR-19 / T-35 / T-36) --}}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5">
+
+        {{-- Stok Total (semua role lihat) --}}
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
+            <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Stok Total</div>
+            <div class="text-2xl font-bold text-gray-900">{{ number_format($totalStockUnits) }}</div>
+            <div class="text-xs text-gray-500 mt-1">unit · <span class="text-amber-700">{{ number_format(\App\Models\StockLevel::sum('reserved')) }} reserved</span></div>
+            <div class="text-xs font-semibold mt-1" style="color:#18382E">Tersedia: {{ number_format($totalAvailableUnits) }} unit</div>
+        </div>
+
+        {{-- Nilai Persediaan (semua role lihat) --}}
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
+            <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nilai Persediaan</div>
+            <div class="text-xl font-bold text-gray-900" style="font-size:1.1rem">Rp {{ number_format($totalStockValue, 0, ',', '.') }}</div>
+            <div class="text-xs text-gray-500 mt-1">Standard Cost valuation</div>
+        </div>
+
+        {{-- AR — hanya finance/owner (SR-14/T-36) --}}
+        @if($canViewFinancials)
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
+            <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Piutang (AR)</div>
+            <div class="text-xl font-bold" style="color:#18382E;font-size:1.1rem">Rp {{ number_format($totalAR, 0, ',', '.') }}</div>
+            <div class="text-xs text-gray-500 mt-1">Termasuk saldo awal</div>
+        </div>
+
+        {{-- AP — hanya finance/owner (SR-14/T-36) --}}
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
+            <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Utang (AP)</div>
+            <div class="text-xl font-bold" style="color:#DC2626;font-size:1.1rem">Rp {{ number_format($totalAP, 0, ',', '.') }}</div>
+            <div class="text-xs text-gray-500 mt-1">Termasuk saldo awal</div>
+        </div>
+        @else
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs" style="border-style:dashed">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Piutang (AR)</div>
+            <div style="display:flex;align-items:center;gap:6px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B2A6" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span style="font-size:12px;color:#B8B2A6">Hanya Finance/Owner (SR-14)</span>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs" style="border-style:dashed">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Utang (AP)</div>
+            <div style="display:flex;align-items:center;gap:6px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B2A6" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span style="font-size:12px;color:#B8B2A6">Hanya Finance/Owner (SR-14)</span>
+            </div>
+        </div>
+        @endif
+    </div>
+
     {{-- Responsive 5-Column Grid --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
 

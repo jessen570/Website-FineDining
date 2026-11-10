@@ -246,12 +246,35 @@ class QuotationController extends Controller
 
     public function confirm(Request $request, string $id)
     {
-        $q = Quotation::where(function ($query) use ($id) {
+        $q = Quotation::with(['customer', 'lines'])->where(function ($query) use ($id) {
             $query->where('quotation_id', $id)->orWhere('id', $id);
         })->firstOrFail();
+
         if (!in_array($q->status, ['Draft', 'Sent'])) {
             return back()->with('error', 'Hanya quotation Draft/Sent yang dapat dikonfirmasi.');
         }
+
+        // SR-15: Credit check saat konfirmasi (sama seperti saat convert to SO)
+        $customer = $q->customer;
+        if ($customer && $customer->credit_limit > 0) {
+            $check = $customer->checkCreditLimit((float) $q->gross_amount);
+
+            if (!$check['passed']) {
+                AuditLog::log('CREDIT_BLOCK', 'Quotation', $q->quotation_id, null,
+                    ['current_exposure' => $check['current_exposure'], 'credit_limit' => $check['credit_limit']],
+                    ['candidate' => $check['candidate_amount'], 'exceeded_by' => $check['exceeded_by']],
+                    "Konfirmasi Quotation {$q->quotation_id} ditolak: batas kredit terlampaui Rp " . number_format($check['exceeded_by'], 0, ',', '.') . ".",
+                    Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'finance');
+
+                return back()->with('error',
+                    "Konfirmasi ditolak (SR-15): batas kredit terlampaui Rp " .
+                    number_format($check['exceeded_by'], 0, ',', '.') .
+                    " (Eksposur: Rp " . number_format($check['current_exposure'], 0, ',', '.') .
+                    " / Limit: Rp " . number_format($check['credit_limit'], 0, ',', '.') . ")."
+                );
+            }
+        }
+
         $q->update(['status' => 'Accepted', 'is_locked' => true]);
         AuditLog::log('CONFIRM', 'Quotation', $q->quotation_id, null, ['status' => $q->getOriginal('status')],
             ['status' => 'Accepted', 'is_locked' => true],

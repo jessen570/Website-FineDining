@@ -325,7 +325,9 @@ class PurchaseController extends Controller
 
     public function validateReceipt(Request $request, string $rid)
     {
-        // Already handled in storeReceipt — this is a stub for direct validation
-        return redirect()->route('receipts.show', $rid)->with('success', "Receipt telah divalidasi.");
+        // Receipt sudah divalidasi saat storeReceipt() — method ini handle re-check
+        $receipt = \App\Models\Receipt::where(fn($q) => $q->where('receipt_id', $rid)->orWhere('id', $rid))->firstOrFail();
+        return redirect()->route('purchase.receipt.show', $receipt->receipt_id)
+            ->with('info', 'Receipt ini sudah diproses dan stok telah diperbarui.');
     }
 }

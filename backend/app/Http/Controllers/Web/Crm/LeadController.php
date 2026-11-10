@@ -167,25 +167,27 @@ class LeadController extends Controller
         $lead = CrmLead::with('customer')->where('lead_id', $id)->orWhere('id', $id)->firstOrFail();
 
         if ($lead->is_converted) {
-            return back()->with('error', 'Lead ini sudah pernah dikonversi ke Opportunity.');
+            return back()->with('error', 'Lead ini sudah pernah dikonversi ke Opportunity (SR-24: tidak ada duplikasi).');
         }
 
-        // Mark lead converted
-        $lead->update([
-            'is_converted'    => true,
-            'conversion_date' => now()->toDateString(),
-            'stage'           => in_array($lead->stage, ['Won', 'Lost']) ? $lead->stage : 'Qualified',
-        ]);
+        // Idempotency: langsung buat Opportunity sekaligus (SR-24 — tidak ada duplikasi)
+        // Opportunity di sistem ini diwakili oleh CrmLead yang is_converted=true + stage Qualified ke atas
+        DB::transaction(function () use ($lead) {
+            $lead->update([
+                'is_converted'    => true,
+                'conversion_date' => now()->toDateString(),
+                'stage'           => in_array($lead->stage, ['Won', 'Lost']) ? $lead->stage : 'Qualified',
+                'lead_status'     => 'Qualified',
+            ]);
 
-        AuditLog::log('CONVERT_TO_OPPORTUNITY', 'CrmLead', $lead->lead_id, null,
-            ['is_converted' => false], ['is_converted' => true, 'conversion_date' => now()->toDateString()],
-            "Lead {$lead->lead_id} dikonversi ke Opportunity.",
-            Auth::user()->name, Auth::user()->role);
+            AuditLog::log('CONVERT_TO_OPPORTUNITY', 'CrmLead', $lead->lead_id, null,
+                ['is_converted' => false, 'stage' => $lead->getOriginal('stage')],
+                ['is_converted' => true, 'stage' => 'Qualified', 'conversion_date' => now()->toDateString()],
+                "Lead {$lead->lead_id} '{$lead->name}' berhasil dikonversi menjadi Opportunity (stage: Qualified). Expected revenue: Rp " . number_format((float)$lead->expected_revenue, 0, ',', '.') . ".",
+                Auth::user()->name, Auth::user()->role);
+        });
 
-        // Redirect to create opportunity with pre-filled data
-        return redirect()->route('crm.opportunities.create', [
-            'from_lead'   => $lead->lead_id,
-            'customer_id' => $lead->customer_id,
-        ])->with('success', "Lead dikonversi. Lengkapi data Opportunity untuk {$lead->name}.");
+        return redirect()->route('crm.opportunities.show', $lead->lead_id)
+            ->with('success', "Lead {$lead->lead_id} berhasil dikonversi menjadi Opportunity. Stage: Qualified, Expected Revenue: Rp " . number_format((float)$lead->fresh()->expected_revenue, 0, ',', '.') . ".");
     }
 }
