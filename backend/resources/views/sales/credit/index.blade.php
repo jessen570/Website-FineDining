@@ -79,13 +79,14 @@
             <tbody>
                 @foreach($customers as $customer)
                 @php
-                    $limit    = $customer->credit_limit ?? 0;
-                    $exposure = $customer->credit_exposure ?? 0;
-                    $avail    = max(0, $limit - $exposure);
-                    $pct      = $limit > 0 ? min(100, round($exposure / $limit * 100)) : 0;
-                    $fillCol  = $pct >= 90 ? '#EF4444' : ($pct >= 60 ? '#D97706' : '#10B981');
-                    $overLimit= $limit > 0 && $exposure > $limit;
-                    $nearLimit= $limit > 0 && $pct >= 80 && !$overLimit;
+                    $limit     = $customer->credit_limit ?? 0;
+                    $exposure  = $customer->credit_exposure ?? 0;
+                    $avail     = max(0, $limit - $exposure);
+                    $rawPct    = $limit > 0 ? round($exposure / $limit * 100) : 0;
+                    $barPct    = min(100, $rawPct);
+                    $overLimit = $limit > 0 && $exposure > $limit;
+                    $nearLimit = $limit > 0 && $rawPct >= 80 && !$overLimit;
+                    $fillCol   = ($overLimit || $rawPct >= 90) ? '#EF4444' : ($rawPct >= 60 ? '#D97706' : '#10B981');
                 @endphp
                 <tr>
                     <td><span style="font-family:monospace;font-size:11.5px;color:#6B6560">{{ $customer->contact_id }}</span></td>
@@ -113,9 +114,9 @@
                         @if($limit > 0)
                         <div style="display:flex;align-items:center;gap:6px">
                             <div class="credit-bar" style="flex:1">
-                                <div class="credit-fill" style="width:{{ $pct }}%;background:{{ $fillCol }}"></div>
+                                <div class="credit-fill" style="width:{{ $barPct }}%;background:{{ $fillCol }}"></div>
                             </div>
-                            <span style="font-size:11px;font-weight:700;color:{{ $fillCol }};width:35px;text-align:right;flex-shrink:0">{{ $pct }}%</span>
+                            <span style="font-size:11px;font-weight:700;color:{{ $fillCol }};width:42px;text-align:right;flex-shrink:0">{{ $rawPct }}%</span>
                         </div>
                         @else
                         <span style="color:#B8B2A6;font-size:12px">Tanpa Batas</span>

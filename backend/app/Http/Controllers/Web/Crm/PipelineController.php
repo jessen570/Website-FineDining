@@ -27,7 +27,13 @@ class PipelineController extends Controller
             $query->where('assigned_to', $request->assigned_to);
         }
 
-        $all = $query->orderByDesc('updated_at')->get();
+        $all = $query->orderByDesc('updated_at')->get()->map(function ($item) use ($stages) {
+            // Normalize legacy 'New' or unrecognized stage into 'Lead' so no item is hidden from Kanban yet counted in total
+            if (!in_array($item->stage, $stages)) {
+                $item->stage = 'Lead';
+            }
+            return $item;
+        });
 
         // Group by stage for kanban
         $kanban = collect($stages)->mapWithKeys(fn($s) => [
@@ -42,7 +48,8 @@ class PipelineController extends Controller
             ]
         ]);
 
-        $grandTotal = $all->whereNotIn('stage', ['Won', 'Lost'])->sum('expected_revenue');
+        // Exact sum of all stages displayed in the summary table
+        $grandTotal = $stageTotals->sum('revenue');
 
         return view('crm.pipeline.index', compact('stages', 'kanban', 'stageTotals', 'grandTotal'));
     }

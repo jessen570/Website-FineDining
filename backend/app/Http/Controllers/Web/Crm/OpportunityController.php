@@ -90,18 +90,22 @@ class OpportunityController extends Controller
         }
 
         // Create a new lead as opportunity
-        $last = CrmLead::orderByDesc('id')->first();
-        $seq  = $last ? ((int) ltrim(str_replace('L', '', $last->lead_id), '0') + 1) : 1;
-        $validated['lead_id']      = 'L' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-        $validated['lead_status']  = 'Qualified';
-        $validated['is_converted'] = true;
-        $validated['conversion_date'] = now()->toDateString();
+        $maxNum = CrmLead::pluck('lead_id')
+            ->map(fn($lid) => (int) preg_replace('/\D/', '', (string) $lid))
+            ->max() ?: 0;
+        $validated['lead_id']          = 'L' . str_pad($maxNum + 1, 4, '0', STR_PAD_LEFT);
+        $validated['customer_id']      = $validated['customer_id'] ?: null;
+        $validated['expected_revenue'] = $validated['expected_revenue'] ?? 0;
+        $validated['probability']      = $validated['probability'] ?? 0;
+        $validated['lead_status']      = 'Qualified';
+        $validated['is_converted']     = true;
+        $validated['conversion_date']  = now()->toDateString();
 
         $opp = CrmLead::create($validated);
 
         AuditLog::log('CREATE', 'CrmLead', $opp->lead_id, null, null, $validated,
             "Opportunity {$opp->lead_id} '{$opp->name}' dibuat.",
-            Auth::user()->name, Auth::user()->role);
+            Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'user');
 
         return redirect()->route('crm.opportunities.show', $opp->lead_id)
             ->with('success', "Opportunity {$opp->lead_id} berhasil dibuat.");
@@ -150,11 +154,15 @@ class OpportunityController extends Controller
             'notes'            => 'nullable|string',
         ]);
 
+        $validated['customer_id']      = $validated['customer_id'] ?: null;
+        $validated['expected_revenue'] = $validated['expected_revenue'] ?? 0;
+        $validated['probability']      = $validated['probability'] ?? 0;
+
         $before = $opp->toArray();
         $opp->update($validated);
 
         AuditLog::log('UPDATE', 'CrmLead', $opp->lead_id, null, $before, $validated,
-            "Opportunity {$opp->lead_id} diperbarui.", Auth::user()->name, Auth::user()->role);
+            "Opportunity {$opp->lead_id} diperbarui.", Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'user');
 
         return redirect()->route('crm.opportunities.show', $opp->lead_id)
             ->with('success', 'Opportunity berhasil diperbarui.');
@@ -170,9 +178,13 @@ class OpportunityController extends Controller
 
         AuditLog::log('STAGE_CHANGE', 'CrmLead', $opp->lead_id, null, $before,
             ['stage' => $request->stage], "Opportunity dipindahkan ke {$request->stage}.",
-            Auth::user()->name, Auth::user()->role);
+            Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'user');
 
-        return response()->json(['success' => true, 'stage' => $request->stage]);
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'stage' => $request->stage]);
+        }
+
+        return back()->with('success', "Tahapan peluang diubah menjadi {$request->stage}.");
     }
 
     public function markWon(Request $request, string $id)

@@ -32,8 +32,10 @@
         </div>
     </div>
 
-    {{-- Quick Action Buttons --}}
+    {{-- Quick Action Buttons (sesuai peran) --}}
+    @php $uRole = strtolower(auth()->user()->role ?? ''); @endphp
     <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-100 w-full lg:w-auto">
+        @if(in_array($uRole, ['owner', 'host', 'finance']))
         <a href="{{ route('crm.leads.create') }}" class="btn btn-outline justify-center text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-xs hover:border-[#C6A76B] transition-colors">
             <i data-lucide="user-plus" class="w-4 h-4 text-[#18382E]"></i>
             <span>Tambah Lead</span>
@@ -46,6 +48,41 @@
             <i data-lucide="plus-circle" class="w-4 h-4 text-[#C6A76B]"></i>
             <span>Tambah Sales Order</span>
         </a>
+        @endif
+        @if(in_array($uRole, ['host']))
+        <a href="{{ route('bookings.create') }}" class="btn btn-primary justify-center text-xs sm:text-sm py-2 px-3.5 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-sm bg-[#18382E] hover:bg-[#244A3D] text-white transition-colors">
+            <i data-lucide="calendar-plus" class="w-4 h-4 text-[#C6A76B]"></i>
+            <span>Buat Reservasi</span>
+        </a>
+        @endif
+        @if(in_array($uRole, ['server', 'cashier']))
+        <a href="{{ route('table-orders.create') }}" class="btn btn-primary justify-center text-xs sm:text-sm py-2 px-3.5 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-sm bg-[#18382E] hover:bg-[#244A3D] text-white transition-colors">
+            <i data-lucide="utensils" class="w-4 h-4 text-[#C6A76B]"></i>
+            <span>Pesanan Meja / POS</span>
+        </a>
+        @endif
+        @if($uRole === 'cashier')
+        <a href="{{ route('invoices.index') }}" class="btn btn-outline justify-center text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-xs hover:border-[#C6A76B] transition-colors">
+            <i data-lucide="receipt" class="w-4 h-4 text-[#18382E]"></i>
+            <span>Faktur &amp; Pembayaran</span>
+        </a>
+        @endif
+        @if($uRole === 'warehouse')
+        <a href="{{ route('inventory.transfer.create') }}" class="btn btn-outline justify-center text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-xs hover:border-[#C6A76B] transition-colors">
+            <i data-lucide="repeat" class="w-4 h-4 text-[#18382E]"></i>
+            <span>Mutasi Stok</span>
+        </a>
+        <a href="{{ route('inventory.deliveries') }}" class="btn btn-primary justify-center text-xs sm:text-sm py-2 px-3.5 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-sm bg-[#18382E] hover:bg-[#244A3D] text-white transition-colors">
+            <i data-lucide="truck" class="w-4 h-4 text-[#C6A76B]"></i>
+            <span>Surat Jalan (DO)</span>
+        </a>
+        @endif
+        @if($uRole === 'procurement')
+        <a href="{{ route('purchase.create') }}" class="btn btn-primary justify-center text-xs sm:text-sm py-2 px-3.5 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-sm bg-[#18382E] hover:bg-[#244A3D] text-white transition-colors">
+            <i data-lucide="shopping-cart" class="w-4 h-4 text-[#C6A76B]"></i>
+            <span>Buat Purchase Order</span>
+        </a>
+        @endif
     </div>
 </div>
 

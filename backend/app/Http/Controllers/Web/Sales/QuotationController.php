@@ -222,12 +222,42 @@ class QuotationController extends Controller
                 QuotationLine::create(array_merge($line, ['quotation_id' => $quotation->quotation_id]));
             }
 
+            if ($discount > 10) {
+                $existingApproval = DiscountApproval::where('document_type', 'Quotation')
+                    ->where('document_id', $quotation->quotation_id)
+                    ->where('status', 'Pending')
+                    ->first();
+
+                if ($existingApproval) {
+                    $existingApproval->update([
+                        'customer_id'      => $request->customer_id,
+                        'discount_percent' => $discount,
+                        'document_amount'  => $grossAmount,
+                        'notes'            => "Diskon {$discount}% — diperbarui pada {$quotation->quotation_id} (SR-08).",
+                    ]);
+                } elseif (!DiscountApproval::where('document_type', 'Quotation')->where('document_id', $quotation->quotation_id)->where('status', 'Approved')->exists()) {
+                    $daSeq = DiscountApproval::max('id') + 1;
+                    DiscountApproval::create([
+                        'approval_code'     => 'DA/' . now()->format('Y') . '/' . str_pad($daSeq, 4, '0', STR_PAD_LEFT),
+                        'document_type'     => 'Quotation',
+                        'document_id'       => $quotation->quotation_id,
+                        'customer_id'       => $request->customer_id,
+                        'discount_percent'  => $discount,
+                        'document_amount'   => $grossAmount,
+                        'requested_by'      => Auth::user()->name,
+                        'requested_by_role' => Auth::user()->role,
+                        'status'            => 'Pending',
+                        'notes'             => "Diskon {$discount}% — perlu review Finance (SR-08).",
+                    ]);
+                }
+            }
+
             AuditLog::log('UPDATE', 'Quotation', $quotation->quotation_id, null, $before,
                 $quotation->fresh()->toArray(), "Quotation diperbarui.",
                 Auth::user()->name, Auth::user()->role);
         });
 
-        return redirect()->route('sales.quotations.show', $id)->with('success', 'Quotation diperbarui.');
+        return redirect()->route('sales.quotations.show', $quotation->quotation_id)->with('success', 'Quotation diperbarui.');
     }
 
     public function send(Request $request, string $id)
@@ -323,26 +353,16 @@ class QuotationController extends Controller
         if ($customer && $customer->credit_limit > 0) {
             $check = $customer->checkCreditLimit((float) $q->gross_amount);
 
-            $unpaidInvoices = (float) \App\Models\Invoice::where('partner_id', $customer->contact_id)
-                ->where('type', 'Customer Invoice')
-                ->whereIn('status', ['Draft', 'Posted'])
-                ->sum('amount_due');
-
-            $confirmedSoAmount = (float) SalesOrder::where('customer_id', $customer->contact_id)
-                ->where('status', 'Confirmed')
-                ->where('invoice_status', '!=', 'Invoiced')
-                ->sum('gross_amount');
-
             $cvSeq = \App\Models\CreditValidation::max('id') + 1;
             \App\Models\CreditValidation::create([
                 'validation_code'     => 'CV/' . now()->format('Y') . '/' . str_pad($cvSeq, 4, '0', STR_PAD_LEFT),
                 'document_type'       => 'Quotation',
-                'document_id'         => $id,
+                'document_id'         => $q->quotation_id,
                 'customer_id'         => $customer->contact_id,
                 'credit_limit'        => $check['credit_limit'],
-                'opening_ar'          => (float) $customer->opening_ar,
-                'unpaid_invoices'     => $unpaidInvoices,
-                'confirmed_so_amount' => $confirmedSoAmount,
+                'opening_ar'          => $check['opening_ar'],
+                'unpaid_invoices'     => $check['unpaid_invoices'],
+                'confirmed_so_amount' => $check['confirmed_so_amount'],
                 'current_exposure'    => $check['current_exposure'],
                 'candidate_amount'    => $check['candidate_amount'],
                 'projected_exposure'  => $check['projected_exposure'],

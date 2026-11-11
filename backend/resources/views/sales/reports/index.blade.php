@@ -210,7 +210,7 @@
                     <tr>
                         <td><a href="{{ route('sales.orders.show', $o->order_id ?? $o->id) }}" style="font-family:monospace;font-size:11.5px;color:#18382E;text-decoration:none;font-weight:600">{{ $o->order_id }}</a></td>
                         <td style="font-size:12.5px;color:#343130">{{ $o->customer?->name ?? '—' }}</td>
-                        <td style="text-align:right;font-size:12.5px;font-weight:700">Rp {{ number_format($o->grand_total ?? 0, 0, ',', '.') }}</td>
+                        <td style="text-align:right;font-size:12.5px;font-weight:700">Rp {{ number_format($o->gross_amount ?? 0, 0, ',', '.') }}</td>
                         <td>
                             @php
                                 $oMap = ['Draft'=>'b-gray','Confirmed'=>'b-green','Done'=>'b-blue','Cancelled'=>'b-red'];

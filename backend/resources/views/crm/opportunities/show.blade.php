@@ -117,7 +117,7 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Dokumen Terkait</span>
-                <a href="{{ route('sales.quotations.create', ['lead_id' => $oppIdentifier]) }}" class="btn btn-outline btn-xs">+ Buat Penawaran</a>
+                <a href="{{ route('sales.quotations.create', ['from_lead' => $oppIdentifier]) }}" class="btn btn-outline btn-xs">+ Buat Penawaran</a>
             </div>
             <div class="card-body">
                 @if($opp->linkedQuotation || $opp->linkedSalesOrder)
@@ -142,7 +142,7 @@
                         </div>
                         <div style="text-align:right">
                             <span class="badge b-blue">{{ $opp->linkedSalesOrder->status }}</span>
-                            <div style="font-size:12.5px;color:#4D4944;margin-top:4px">Rp {{ number_format($opp->linkedSalesOrder->grand_total ?? 0, 0, ',', '.') }}</div>
+                            <div style="font-size:12.5px;color:#4D4944;margin-top:4px">Rp {{ number_format($opp->linkedSalesOrder->gross_amount ?? 0, 0, ',', '.') }}</div>
                         </div>
                     </div>
                     @endif
@@ -170,11 +170,11 @@
                         <div style="flex:1">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                                 <span class="badge b-blue" style="font-size:10px">{{ $log->action }}</span>
-                                <span style="font-size:12.5px;font-weight:600;color:#343130">{{ $log->user?->name ?? 'Sistem' }}</span>
+                                <span style="font-size:12.5px;font-weight:600;color:#343130">{{ $log->actor_name ?? 'Sistem' }}</span>
                                 <span style="font-size:11.5px;color:#B8B2A6">{{ \Carbon\Carbon::parse($log->created_at)->translatedFormat('d M Y, H:i') }}</span>
                             </div>
-                            @if($log->description)
-                            <div style="font-size:12px;color:#6B6560;margin-top:3px">{{ $log->description }}</div>
+                            @if($log->message)
+                            <div style="font-size:12px;color:#6B6560;margin-top:3px">{{ $log->message }}</div>
                             @endif
                         </div>
                     </div>

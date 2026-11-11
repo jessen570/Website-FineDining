@@ -134,7 +134,7 @@
                         @endif
                     </td>
                     <td style="text-align:center;font-size:13px">{{ $order->discount_percent ?? 0 }}%</td>
-                    <td style="text-align:right;font-weight:700;font-size:13px;color:#1E1C1A">Rp {{ number_format($order->grand_total ?? 0, 0, ',', '.') }}</td>
+                    <td style="text-align:right;font-weight:700;font-size:13px;color:#1E1C1A">Rp {{ number_format($order->gross_amount ?? 0, 0, ',', '.') }}</td>
                     <td><span class="badge {{ $statusMap[$order->status] ?? 'b-gray' }}">{{ $statusLabels[$order->status] ?? $order->status }}</span></td>
                     <td>
                         @if($order->delivery_status)

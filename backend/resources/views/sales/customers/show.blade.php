@@ -129,7 +129,7 @@
                         <tr>
                             <td><a href="{{ route('sales.orders.show', $o) }}" style="color:#18382E;font-weight:600;text-decoration:none;font-family:monospace;font-size:12px">{{ $o->order_id }}</a></td>
                             <td style="font-size:12.5px;color:#6B6560">{{ \Carbon\Carbon::parse($o->order_date)->format('d M Y') }}</td>
-                            <td style="text-align:right;font-size:13px;font-weight:600">Rp {{ number_format($o->grand_total ?? 0, 0, ',', '.') }}</td>
+                            <td style="text-align:right;font-size:13px;font-weight:600">Rp {{ number_format($o->gross_amount ?? 0, 0, ',', '.') }}</td>
                             <td>
                                 @php $oMap=['Draft'=>'b-gray','Confirmed'=>'b-green','Done'=>'b-blue','Cancelled'=>'b-red']; @endphp
                                 <span class="badge {{ $oMap[$o->status] ?? 'b-gray' }}">{{ $o->status }}</span>

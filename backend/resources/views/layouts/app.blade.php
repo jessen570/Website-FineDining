@@ -513,14 +513,13 @@
         @php
             $role = strtolower(auth()->user()->role ?? '');
             $roleLabel = match($role) {
-                'owner'       => 'Owner / Pemilik',
-                'host'        => 'Host',
-                'server'      => 'Server',
-                'warehouse'   => 'Warehouse Officer',
+                'owner'       => 'Owner / GM',
+                'host'        => 'Host & Reservasi',
+                'server'      => 'Pelayan / Server',
+                'warehouse'   => 'Gudang & Stok',
                 'finance'     => 'Finance Manager',
                 'procurement' => 'Purchasing Lead',
-                'cashier'     => 'Cashier',
-                'hr'          => 'HR Manager',
+                'cashier'     => 'Kasir Restoran',
                 default       => ucfirst(auth()->user()->role ?? 'Pengguna')
             };
         @endphp
@@ -531,8 +530,8 @@
                 Dashboard
             </a>
 
-            {{-- ── CRM: owner, finance, host, procurement ── --}}
-            @if(in_array($role, ['owner','finance','host','procurement']))
+            {{-- ── CRM: owner, finance, host ── --}}
+            @if(in_array($role, ['owner','finance','host']))
             <div class="nav-section-label">CRM & Prospek</div>
             <a href="{{ route('crm.leads.index') }}"
                class="nav-item {{ request()->routeIs('crm.leads.*') ? 'active' : '' }}">
@@ -553,14 +552,15 @@
             </a>
             @endif
 
-            {{-- ── Penjualan: owner, finance, host, cashier ── --}}
-            @if(in_array($role, ['owner','finance','host','cashier']))
-            <div class="nav-section-label">Penjualan</div>
+            {{-- ── Penjualan & Kontak: owner, finance, host (+ kontak untuk cashier/procurement) ── --}}
+            @if(in_array($role, ['owner','finance','host','cashier','procurement']))
+            <div class="nav-section-label">Penjualan &amp; Relasi</div>
             <a href="{{ route('contacts.index') }}"
                class="nav-item {{ request()->routeIs('contacts.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Kontak & Pelanggan
+                Kontak &amp; {{ $role === 'procurement' ? 'Vendor' : 'Pelanggan' }}
             </a>
+            @if(in_array($role, ['owner','finance','host']))
             <a href="{{ route('sales.quotations.index') }}"
                class="nav-item {{ request()->routeIs('sales.quotations.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -573,6 +573,7 @@
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                 Pesanan Penjualan (SO)
             </a>
+            @endif
             @endif
 
             {{-- Diskon & Kredit: owner, finance saja ── --}}
@@ -596,9 +597,8 @@
             </a>
             @endif
 
-            {{-- ── Restoran: host, server, cashier (+ owner) ── --}}
-            @if(in_array($role, ['owner','host','server','cashier']))
-            <div class="nav-section-label">Restoran & Operasional</div>
+            {{-- ── Restoran & Menu: semua role operasional restoran (+ semua staf lihat menu) ── --}}
+            <div class="nav-section-label">Restoran &amp; Menu</div>
             @if(in_array($role, ['owner','host']))
             <a href="{{ route('bookings.index') }}"
                class="nav-item {{ request()->routeIs('bookings.*') ? 'active' : '' }}">
@@ -606,25 +606,22 @@
                 Reservasi Meja
             </a>
             @endif
+            @if(in_array($role, ['owner','host','server','cashier']))
             <a href="{{ route('table-orders.index') }}"
                class="nav-item {{ request()->routeIs('table-orders.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
                 Pesanan Meja / POS
             </a>
             @endif
-
-            {{-- ── Produk/Menu: owner, warehouse, procurement, finance ── --}}
-            @if(in_array($role, ['owner','warehouse','procurement','finance']))
             <a href="{{ route('products.index') }}"
                class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                Menu & Produk
+                Menu &amp; Produk
             </a>
-            @endif
 
-            {{-- ── Rantai Pasok: warehouse (+ procurement untuk PO) ── --}}
-            @if(in_array($role, ['owner','warehouse','procurement']))
-            <div class="nav-section-label">Rantai Pasok & Gudang</div>
+            {{-- ── Rantai Pasok: warehouse, procurement (+ finance lihat PO) ── --}}
+            @if(in_array($role, ['owner','warehouse','procurement','finance']))
+            <div class="nav-section-label">Rantai Pasok &amp; Gudang</div>
             @if(in_array($role, ['owner','warehouse']))
             <a href="{{ route('inventory.index') }}"
                class="nav-item {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.transfer.*') ? 'active' : '' }}">
@@ -637,23 +634,25 @@
                 Surat Jalan (DO)
             </a>
             @endif
-            @if(in_array($role, ['owner','procurement']))
+            @if(in_array($role, ['owner','procurement','warehouse','finance']))
             <a href="{{ route('purchase.index') }}"
                class="nav-item {{ request()->routeIs('purchase.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                Pembelian (PO)
+                {{ $role === 'warehouse' ? 'Penerimaan PO' : 'Pembelian (PO)' }}
             </a>
             @endif
             @endif
 
-            {{-- ── Keuangan: finance, cashier (+ owner) ── --}}
+            {{-- ── Keuangan & Retur: finance, cashier (+ warehouse lihat retur) ── --}}
+            @if(in_array($role, ['owner','finance','cashier','warehouse']))
+            <div class="nav-section-label">Keuangan &amp; Akuntansi</div>
             @if(in_array($role, ['owner','finance','cashier']))
-            <div class="nav-section-label">Keuangan & Akuntansi</div>
             <a href="{{ route('invoices.index') }}"
                class="nav-item {{ request()->routeIs('invoices.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                Faktur & Tagihan
+                Faktur &amp; Pembayaran
             </a>
+            @endif
             @if(in_array($role, ['owner','finance','warehouse']))
             <a href="{{ route('returns.index') }}"
                class="nav-item {{ request()->routeIs('returns.*') ? 'active' : '' }}">
@@ -665,19 +664,9 @@
             <a href="{{ route('accounting.index') }}"
                class="nav-item {{ request()->routeIs('accounting.*') ? 'active' : '' }}">
                 <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Jurnal & Buku Besar
+                Jurnal &amp; Buku Besar
             </a>
             @endif
-            @endif
-
-            {{-- ── Warehouse juga bisa lihat retur ── --}}
-            @if($role === 'warehouse')
-            <div class="nav-section-label">Keuangan</div>
-            <a href="{{ route('returns.index') }}"
-               class="nav-item {{ request()->routeIs('returns.*') ? 'active' : '' }}">
-                <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-                Retur Barang
-            </a>
             @endif
 
             {{-- ── Karyawan: semua role bisa lihat ── --}}

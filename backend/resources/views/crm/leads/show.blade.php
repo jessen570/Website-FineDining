@@ -140,7 +140,7 @@
                         </div>
                         <div style="text-align:right">
                             <span class="badge b-blue">{{ $lead->linkedSalesOrder->status }}</span>
-                            <div style="font-size:12.5px;color:#4D4944;margin-top:4px">Rp {{ number_format($lead->linkedSalesOrder->grand_total ?? 0, 0, ',', '.') }}</div>
+                            <div style="font-size:12.5px;color:#4D4944;margin-top:4px">Rp {{ number_format($lead->linkedSalesOrder->gross_amount ?? 0, 0, ',', '.') }}</div>
                         </div>
                     </div>
                     @endif
@@ -181,16 +181,16 @@
                         <div style="flex:1">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                                 <span class="badge b-blue" style="font-size:10px">{{ $log->action }}</span>
-                                <span style="font-size:12.5px;font-weight:600;color:#343130">{{ $log->user?->name ?? 'Sistem' }}</span>
+                                <span style="font-size:12.5px;font-weight:600;color:#343130">{{ $log->actor_name ?? 'Sistem' }}</span>
                                 <span style="font-size:11.5px;color:#B8B2A6">{{ \Carbon\Carbon::parse($log->created_at)->translatedFormat('d M Y, H:i') }}</span>
                             </div>
-                            @if($log->description)
-                            <div style="font-size:12px;color:#6B6560;margin-top:3px">{{ $log->description }}</div>
+                            @if($log->message)
+                            <div style="font-size:12px;color:#6B6560;margin-top:3px">{{ $log->message }}</div>
                             @endif
-                            @if($log->payload)
+                            @if($log->after_payload || $log->before_payload)
                             <details style="margin-top:6px">
                                 <summary style="font-size:11.5px;color:#C6A76B;cursor:pointer;outline:none">Tampilkan rincian data</summary>
-                                <pre style="font-size:11px;background:#F7F5F0;padding:8px;border-radius:6px;margin-top:6px;overflow-x:auto;color:#4D4944">{{ json_encode(json_decode($log->payload), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                <pre style="font-size:11px;background:#F7F5F0;padding:8px;border-radius:6px;margin-top:6px;overflow-x:auto;color:#4D4944">{{ json_encode($log->after_payload ?? $log->before_payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                             </details>
                             @endif
                         </div>
@@ -255,7 +255,7 @@
                         Lihat Data Pelanggan
                     </a>
                     @endif
-                    <a href="{{ route('sales.quotations.create', ['lead_id' => $lead->lead_id ?? $lead->id]) }}" class="btn btn-outline btn-sm" style="justify-content:flex-start">
+                    <a href="{{ route('sales.quotations.create', ['from_lead' => $lead->lead_id ?? $lead->id]) }}" class="btn btn-outline btn-sm" style="justify-content:flex-start">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         Buat Surat Penawaran
                     </a>

@@ -145,14 +145,21 @@ class SalesOrderController extends Controller
             $q->where('order_id', $id)->orWhere('id', $id);
         })->firstOrFail();
 
-        $approvalRecord   = DiscountApproval::where(function ($q) use ($id, $order) {
-                $q->where('document_id', $id)->orWhere('document_id', $order->order_id);
+        $approvalRecord = DiscountApproval::where(function ($q) use ($id, $order) {
+                $q->where('document_id', $id)
+                  ->orWhere('document_id', $order->order_id)
+                  ->when($order->quotation_id, fn($sub) => $sub->orWhere('document_id', $order->quotation_id));
             })
-            ->whereIn('document_type', ['SalesOrder', 'Quotation'])->first();
+            ->whereIn('document_type', ['SalesOrder', 'Quotation'])
+            ->latest()
+            ->first();
+
         $creditValidation = CreditValidation::where(function ($q) use ($id, $order) {
-                $q->where('document_id', $id)->orWhere('document_id', $order->order_id);
+                $q->where(fn($s) => $s->where('document_type', 'SalesOrder')->whereIn('document_id', [$id, $order->order_id]))
+                  ->when($order->quotation_id, fn($s) => $s->orWhere(fn($sub) => $sub->where('document_type', 'Quotation')->where('document_id', $order->quotation_id)));
             })
-            ->where('document_type', 'SalesOrder')->latest()->first();
+            ->latest()
+            ->first();
         $auditLogs        = AuditLog::where('document_type', 'SalesOrder')
             ->where(function ($q) use ($id, $order) {
                 $q->where('document_id', $id)->orWhere('document_id', $order->order_id);
@@ -233,12 +240,42 @@ class SalesOrderController extends Controller
                 SalesOrderLine::create(array_merge($line, ['order_id' => $order->order_id]));
             }
 
+            if ($discount > 10) {
+                $existingApproval = DiscountApproval::where('document_type', 'SalesOrder')
+                    ->where('document_id', $order->order_id)
+                    ->where('status', 'Pending')
+                    ->first();
+
+                if ($existingApproval) {
+                    $existingApproval->update([
+                        'customer_id'      => $request->customer_id,
+                        'discount_percent' => $discount,
+                        'document_amount'  => $grossAmount,
+                        'notes'            => "Diskon {$discount}% — diperbarui pada {$order->order_id} (SR-08).",
+                    ]);
+                } elseif (!DiscountApproval::where('document_type', 'SalesOrder')->where('document_id', $order->order_id)->where('status', 'Approved')->exists()) {
+                    $daSeq = DiscountApproval::max('id') + 1;
+                    DiscountApproval::create([
+                        'approval_code'     => 'DA/' . now()->format('Y') . '/' . str_pad($daSeq, 4, '0', STR_PAD_LEFT),
+                        'document_type'     => 'SalesOrder',
+                        'document_id'       => $order->order_id,
+                        'customer_id'       => $request->customer_id,
+                        'discount_percent'  => $discount,
+                        'document_amount'   => $grossAmount,
+                        'requested_by'      => Auth::user()->name,
+                        'requested_by_role' => Auth::user()->role,
+                        'status'            => 'Pending',
+                        'notes'             => "Diskon {$discount}% — perlu review Finance (SR-08).",
+                    ]);
+                }
+            }
+
             AuditLog::log('UPDATE', 'SalesOrder', $order->order_id, null, $before,
                 $order->fresh()->toArray(), "SO {$order->order_id} diperbarui.",
                 Auth::user()->name, Auth::user()->role);
         });
 
-        return redirect()->route('sales.orders.show', $id)->with('success', 'Sales Order diperbarui.');
+        return redirect()->route('sales.orders.show', $order->order_id)->with('success', 'Sales Order diperbarui.');
     }
 
     public function confirm(Request $request, string $id)
@@ -256,16 +293,10 @@ class SalesOrderController extends Controller
         if ($customer && $customer->credit_limit > 0) {
             $check = $customer->checkCreditLimit((float) $order->gross_amount);
 
-            // SR-15: unpaid invoices = sum of amount_due from Customer Invoices that are not fully paid
-            $unpaidInvoices = (float) \App\Models\Invoice::where('partner_id', $customer->contact_id)
-                ->where('type', 'Customer Invoice')
-                ->whereIn('status', ['Draft', 'Posted'])
-                ->sum('amount_due');
-
             $confirmedSoAmount = (float) SalesOrder::where('customer_id', $customer->contact_id)
                 ->where('status', 'Confirmed')
                 ->where('invoice_status', '!=', 'Invoiced')
-                ->where('order_id', '!=', $id) // exclude current SO being confirmed
+                ->where('order_id', '!=', $order->order_id) // exclude current SO being confirmed
                 ->sum('gross_amount');
 
             // Record validation with accurate breakdown (SR-15 compliant)
@@ -273,18 +304,18 @@ class SalesOrderController extends Controller
             CreditValidation::create([
                 'validation_code'     => 'CV/' . now()->format('Y') . '/' . str_pad($cvSeq, 4, '0', STR_PAD_LEFT),
                 'document_type'       => 'SalesOrder',
-                'document_id'         => $id,
+                'document_id'         => $order->order_id,
                 'customer_id'         => $customer->contact_id,
                 'credit_limit'        => $check['credit_limit'],
-                'opening_ar'          => (float) $customer->opening_ar,
-                'unpaid_invoices'     => $unpaidInvoices,
+                'opening_ar'          => $check['opening_ar'],
+                'unpaid_invoices'     => $check['unpaid_invoices'],
                 'confirmed_so_amount' => $confirmedSoAmount,
                 'current_exposure'    => $check['current_exposure'],
                 'candidate_amount'    => $check['candidate_amount'],
                 'projected_exposure'  => $check['projected_exposure'],
                 'passed'              => $check['passed'],
                 'exceeded_by'         => $check['exceeded_by'],
-                'validated_by'        => Auth::user()->name,
+                'validated_by'        => Auth::user()?->name ?? 'System',
             ]);
 
             if (!$check['passed']) {
