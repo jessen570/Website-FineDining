@@ -189,11 +189,11 @@
                         <div style="flex:1">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                                 <span class="badge b-blue" style="font-size:10px">{{ $log->action }}</span>
-                                <span style="font-size:12.5px;font-weight:600;color:#343130">{{ $log->user?->name ?? 'System' }}</span>
+                                <span style="font-size:12.5px;font-weight:600;color:#343130">{{ $log->actor_name ?? 'System' }}</span>
                                 <span style="font-size:11.5px;color:#B8B2A6">{{ \Carbon\Carbon::parse($log->created_at)->format('d M Y, H:i') }}</span>
                             </div>
-                            @if($log->description)
-                            <div style="font-size:12px;color:#6B6560;margin-top:3px">{{ $log->description }}</div>
+                            @if($log->message)
+                            <div style="font-size:12px;color:#6B6560;margin-top:3px">{{ $log->message }}</div>
                             @endif
                         </div>
                     </div>
@@ -269,28 +269,37 @@
         @if(isset($creditValidation) && $creditValidation)
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Credit Validation</span>
+                <span class="card-title">Validasi Kredit (SR-15)</span>
                 <span class="badge {{ $creditValidation->passed ? 'b-green' : 'b-red' }}">
-                    {{ $creditValidation->passed ? 'Passed' : 'Failed' }}
+                    {{ $creditValidation->passed ? 'Lulus' : 'Ditolak' }}
                 </span>
             </div>
             <div class="card-body">
                 <div style="display:flex;flex-direction:column;gap:10px">
                     <div style="display:flex;justify-content:space-between">
-                        <span style="font-size:12.5px;color:#6B6560">Exposure</span>
-                        <span style="font-size:12.5px;font-weight:600">Rp {{ number_format($creditValidation->exposure ?? 0, 0, ',', '.') }}</span>
+                        <span style="font-size:12.5px;color:#6B6560">Eksposur Sebelumnya</span>
+                        <span style="font-size:12.5px;font-weight:600">Rp {{ number_format($creditValidation->current_exposure ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
-                        <span style="font-size:12.5px;color:#6B6560">Credit Limit</span>
+                        <span style="font-size:12.5px;color:#6B6560">Proyeksi Eksposur</span>
+                        <span style="font-size:12.5px;font-weight:600">Rp {{ number_format($creditValidation->projected_exposure ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="font-size:12.5px;color:#6B6560">Batas Kredit</span>
                         <span style="font-size:12.5px;font-weight:600">Rp {{ number_format($creditValidation->credit_limit ?? 0, 0, ',', '.') }}</span>
                     </div>
-                    @if($creditValidation->exceeded_by ?? 0)
+                    @if(($creditValidation->exceeded_by ?? 0) > 0)
                     <div style="display:flex;justify-content:space-between">
-                        <span style="font-size:12.5px;color:#DC2626">Exceeded By</span>
+                        <span style="font-size:12.5px;color:#DC2626">Melebihi Limit</span>
                         <span style="font-size:12.5px;font-weight:700;color:#DC2626">Rp {{ number_format($creditValidation->exceeded_by, 0, ',', '.') }}</span>
                     </div>
                     @endif
-                    <div style="font-size:11.5px;color:#B8B2A6">{{ \Carbon\Carbon::parse($creditValidation->validated_at ?? $creditValidation->created_at)->format('d M Y, H:i') }}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #F0EEE8">
+                        <span style="font-size:11.5px;color:#B8B2A6">{{ \Carbon\Carbon::parse($creditValidation->created_at)->format('d M Y, H:i') }}</span>
+                        @if(in_array(auth()->user()->role ?? '', ['owner', 'finance']))
+                        <a href="{{ route('sales.credit.show', $order->customer_id) }}" style="font-size:11.5px;color:#18382E;font-weight:600;text-decoration:none">Profil Kredit ↗</a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -300,22 +309,28 @@
         @if(isset($approvalRecord) && $approvalRecord)
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Discount Approval</span>
-                <span class="badge {{ $approvalRecord->status === 'Approved' ? 'b-green' : ($approvalRecord->status === 'Rejected' ? 'b-red' : 'b-amber') }}">{{ $approvalRecord->status }}</span>
+                <span class="card-title">Persetujuan Diskon (SR-08)</span>
+                <x-badge :status="$approvalRecord->status" />
             </div>
             <div class="card-body">
                 <div style="display:flex;flex-direction:column;gap:10px">
                     <div>
-                        <div class="section-title" style="margin-bottom:2px">Approval Code</div>
+                        <div class="section-title" style="margin-bottom:2px">Kode Persetujuan</div>
+                        @if(in_array(auth()->user()->role ?? '', ['owner', 'finance']))
+                        <a href="{{ route('sales.discounts.show', $approvalRecord->approval_code) }}" style="font-family:monospace;font-size:12.5px;color:#18382E;font-weight:600;text-decoration:none">
+                            {{ $approvalRecord->approval_code }} ↗
+                        </a>
+                        @else
                         <div style="font-family:monospace;font-size:12.5px;color:#1E1C1A">{{ $approvalRecord->approval_code }}</div>
+                        @endif
                     </div>
                     <div>
-                        <div class="section-title" style="margin-bottom:2px">Approved By</div>
-                        <div style="font-size:13px;color:#1E1C1A">{{ $approvalRecord->approvedBy?->name ?? '—' }}</div>
+                        <div class="section-title" style="margin-bottom:2px">Diproses Oleh</div>
+                        <div style="font-size:13px;color:#1E1C1A">{{ $approvalRecord->approved_by ?? 'Menunggu tinjauan Finance/Owner' }}</div>
                     </div>
                     <div>
-                        <div class="section-title" style="margin-bottom:2px">Date</div>
-                        <div style="font-size:12.5px;color:#6B6560">{{ \Carbon\Carbon::parse($approvalRecord->updated_at)->format('d M Y, H:i') }}</div>
+                        <div class="section-title" style="margin-bottom:2px">Tanggal</div>
+                        <div style="font-size:12.5px;color:#6B6560">{{ \Carbon\Carbon::parse($approvalRecord->approved_at ?? $approvalRecord->updated_at)->format('d M Y, H:i') }}</div>
                     </div>
                 </div>
             </div>

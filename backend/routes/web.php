@@ -46,10 +46,10 @@ Route::middleware('auth.web')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ══════════════════════════════════════════════════════════════════════
-    // CRM & PROSPEK — host, finance, procurement
-    // (owner bypass otomatis via CheckRole middleware — line 17)
+    // CRM & PROSPEK — owner, host, finance
+    // (owner bypass otomatis via CheckRole middleware)
     // ══════════════════════════════════════════════════════════════════════
-    Route::middleware('role:host,finance,procurement')->group(function () {
+    Route::middleware('role:host,finance')->group(function () {
 
         Route::prefix('crm/leads')->name('crm.leads.')->group(function () {
             Route::get('/',              [LeadController::class, 'index'])->name('index');
@@ -89,10 +89,9 @@ Route::middleware('auth.web')->group(function () {
     });
 
     // ══════════════════════════════════════════════════════════════════════
-    // PENJUALAN — owner, finance, host
+    // PELANGGAN — owner, finance, host, cashier
     // ══════════════════════════════════════════════════════════════════════
     Route::middleware('role:finance,host,cashier')->group(function () {
-
         Route::prefix('sales/customers')->name('sales.customers.')->group(function () {
             Route::get('/',            [CustomerController::class, 'index'])->name('index');
             Route::get('/create',      [CustomerController::class, 'create'])->name('create');
@@ -102,7 +101,12 @@ Route::middleware('auth.web')->group(function () {
             Route::patch('/{id}',      [CustomerController::class, 'update'])->name('update');
             Route::get('/{id}/credit', [CustomerController::class, 'creditDetail'])->name('credit');
         });
+    });
 
+    // ══════════════════════════════════════════════════════════════════════
+    // PENJUALAN (B2B / BANQUET) — owner, finance, host
+    // ══════════════════════════════════════════════════════════════════════
+    Route::middleware('role:finance,host')->group(function () {
         Route::prefix('sales/quotations')->name('sales.quotations.')->group(function () {
             Route::get('/',               [QuotationController::class, 'index'])->name('index');
             Route::get('/create',         [QuotationController::class, 'create'])->name('create');
@@ -127,26 +131,15 @@ Route::middleware('auth.web')->group(function () {
             Route::post('/{id}/confirm', [SalesOrderController::class, 'confirm'])->name('confirm');
             Route::post('/{id}/cancel',  [SalesOrderController::class, 'cancel'])->name('cancel');
         });
-
-        Route::prefix('sales/reports')->name('sales.reports.')->group(function () {
-            Route::get('/', [ReportingController::class, 'index'])->name('index');
-        });
-
-        // Backward-compat Sales aliases
-        Route::get('/sales',               fn() => redirect()->route('sales.orders.index'))->name('sales.index');
-        Route::get('/sales/create',        fn() => redirect()->route('sales.orders.create'))->name('sales.create');
-        Route::post('/sales',              [SalesOrderController::class, 'store'])->name('sales.store');
-        Route::get('/sales/{id}',          fn($id) => redirect()->route('sales.orders.show', $id))->name('sales.show');
-        Route::get('/sales/{id}/edit',     fn($id) => redirect()->route('sales.orders.edit', $id))->name('sales.edit');
-        Route::patch('/sales/{id}',        [SalesOrderController::class, 'update'])->name('sales.update');
-        Route::post('/sales/{id}/confirm', [SalesOrderController::class, 'confirm'])->name('sales.confirm');
-        Route::post('/sales/{id}/cancel',  [SalesOrderController::class, 'cancel'])->name('sales.cancel');
     });
 
     // ══════════════════════════════════════════════════════════════════════
-    // DISKON & KREDIT — owner, finance
+    // DISKON, KREDIT & LAPORAN PENJUALAN — owner, finance
     // ══════════════════════════════════════════════════════════════════════
     Route::middleware('role:finance')->group(function () {
+        Route::prefix('sales/reports')->name('sales.reports.')->group(function () {
+            Route::get('/', [ReportingController::class, 'index'])->name('index');
+        });
 
         Route::prefix('sales/discounts')->name('sales.discounts.')->group(function () {
             Route::get('/',              [DiscountApprovalController::class, 'index'])->name('index');
@@ -162,41 +155,61 @@ Route::middleware('auth.web')->group(function () {
         });
     });
 
-    // ══════════════════════════════════════════════════════════════════════
-    // PRODUK / MENU — owner, warehouse, procurement
-    // ══════════════════════════════════════════════════════════════════════
-    Route::middleware('role:warehouse,procurement,finance')->group(function () {
-        Route::prefix('products')->name('products.')->group(function () {
-            Route::get('/',          [ProductController::class, 'index'])->name('index');
-            Route::get('/create',    [ProductController::class, 'create'])->name('create');
-            Route::post('/',         [ProductController::class, 'store'])->name('store');
-            Route::get('/{id}',      [ProductController::class, 'show'])->name('show');
-            Route::get('/{id}/edit', [ProductController::class, 'edit'])->name('edit');
-            Route::patch('/{id}',    [ProductController::class, 'update'])->name('update');
-        });
+    // Backward-compat Sales aliases (placed AFTER specific /sales/* prefixes)
+    Route::middleware('role:finance,host')->group(function () {
+        Route::get('/sales',               fn() => redirect()->route('sales.orders.index'))->name('sales.index');
+        Route::get('/sales/create',        fn() => redirect()->route('sales.orders.create'))->name('sales.create');
+        Route::post('/sales',              [SalesOrderController::class, 'store'])->name('sales.store');
+        Route::get('/sales/{id}',          fn($id) => redirect()->route('sales.orders.show', $id))
+            ->where('id', '(?!customers|quotations|orders|reports|discounts|credit).*')
+            ->name('sales.show');
+        Route::get('/sales/{id}/edit',     fn($id) => redirect()->route('sales.orders.edit', $id))
+            ->where('id', '(?!customers|quotations|orders|reports|discounts|credit).*')
+            ->name('sales.edit');
+        Route::patch('/sales/{id}',        [SalesOrderController::class, 'update'])->name('sales.update');
+        Route::post('/sales/{id}/confirm', [SalesOrderController::class, 'confirm'])->name('sales.confirm');
+        Route::post('/sales/{id}/cancel',  [SalesOrderController::class, 'cancel'])->name('sales.cancel');
     });
 
     // ══════════════════════════════════════════════════════════════════════
-    // INVOICE & PEMBAYARAN — finance, cashier
-    // S-09: Finance, Sales; S-13: Finance, Cashier; S-17: Warehouse, Finance
+    // PRODUK / MENU — kelola: owner, warehouse, procurement; lihat: semua staf
     // ══════════════════════════════════════════════════════════════════════
-    Route::middleware('role:finance,cashier')->group(function () {
+    Route::prefix('products')->name('products.')->group(function () {
+        Route::middleware('role:warehouse,procurement')->group(function () {
+            Route::get('/create',    [ProductController::class, 'create'])->name('create');
+            Route::post('/',         [ProductController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [ProductController::class, 'edit'])->name('edit');
+            Route::patch('/{id}',    [ProductController::class, 'update'])->name('update');
+        });
+        Route::get('/',     [ProductController::class, 'index'])->name('index');
+        Route::get('/{id}', [ProductController::class, 'show'])->name('show');
+    });
 
-        Route::prefix('invoices')->name('invoices.')->group(function () {
-            Route::get('/',                     [InvoiceController::class, 'index'])->name('index');
-            Route::get('/{id}',                 [InvoiceController::class, 'show'])->where('id', '.*')->name('show');
+    // ══════════════════════════════════════════════════════════════════════
+    // INVOICE & PEMBAYARAN
+    // - Lihat & Pembayaran Kasir: owner, finance, cashier
+    // - Posting Jurnal / Cancel / Buat Faktur dari DO/SO/Receipt: owner, finance
+    // ══════════════════════════════════════════════════════════════════════
+    Route::prefix('invoices')->name('invoices.')->group(function () {
+        Route::middleware('role:finance,cashier')->group(function () {
+            Route::get('/',         [InvoiceController::class, 'index'])->name('index');
+            Route::get('/{id}/pay', [InvoiceController::class, 'payForm'])->where('id', '.*')->name('pay.form');
+            Route::post('/{id}/pay',[InvoiceController::class, 'pay'])->where('id', '.*')->name('pay');
+        });
+        Route::middleware('role:finance')->group(function () {
             Route::post('/{id}/post',           [InvoiceController::class, 'post'])->where('id', '.*')->name('post');
             Route::post('/{id}/cancel',         [InvoiceController::class, 'cancel'])->where('id', '.*')->name('cancel');
-            Route::get('/{id}/pay',             [InvoiceController::class, 'payForm'])->where('id', '.*')->name('pay.form');
-            Route::post('/{id}/pay',            [InvoiceController::class, 'pay'])->where('id', '.*')->name('pay');
             Route::post('/from-delivery/{did}', [InvoiceController::class, 'createFromDelivery'])->where('did', '.*')->name('createFromDelivery');
             Route::post('/from-so/{so_id}',     [InvoiceController::class, 'createFromSalesOrder'])->where('so_id', '.*')->name('createFromSO');
             Route::post('/from-receipt/{rid}',  [InvoiceController::class, 'createFromReceipt'])->where('rid', '.*')->name('createFromReceipt');
         });
+        Route::middleware('role:finance,cashier')->group(function () {
+            Route::get('/{id}', [InvoiceController::class, 'show'])->where('id', '.*')->name('show');
+        });
     });
 
-    // Return / Credit Note — S-17 menyebut Roles: Warehouse, Finance
-    Route::middleware('role:finance,cashier,warehouse')->group(function () {
+    // Return / Credit Note — owner, finance, warehouse
+    Route::middleware('role:finance,warehouse')->group(function () {
         Route::prefix('returns')->name('returns.')->group(function () {
             Route::get('/',               [InvoiceController::class, 'returnsIndex'])->name('index');
             Route::get('/create',         [InvoiceController::class, 'returnCreate'])->name('create');
@@ -221,22 +234,26 @@ Route::middleware('auth.web')->group(function () {
     });
 
     // ══════════════════════════════════════════════════════════════════════
-    // PEMBELIAN — owner, procurement
+    // PEMBELIAN — PO: owner, procurement; Penerimaan QC: +warehouse; Lihat: +finance
     // ══════════════════════════════════════════════════════════════════════
-    Route::middleware('role:procurement')->group(function () {
-        Route::prefix('purchase')->name('purchase.')->group(function () {
-            Route::get('/',                         [PurchaseController::class, 'index'])->name('index');
-            Route::get('/create',                   [PurchaseController::class, 'create'])->name('create');
-            Route::post('/',                        [PurchaseController::class, 'store'])->name('store');
-            Route::get('/{id}',                     [PurchaseController::class, 'show'])->name('show');
-            Route::get('/{id}/edit',                [PurchaseController::class, 'edit'])->name('edit');
-            Route::patch('/{id}',                   [PurchaseController::class, 'update'])->name('update');
-            Route::post('/{id}/confirm',            [PurchaseController::class, 'confirm'])->name('confirm');
-            Route::post('/{id}/cancel',             [PurchaseController::class, 'cancel'])->name('cancel');
+    Route::prefix('purchase')->name('purchase.')->group(function () {
+        Route::middleware('role:procurement')->group(function () {
+            Route::get('/create',        [PurchaseController::class, 'create'])->name('create');
+            Route::post('/',             [PurchaseController::class, 'store'])->name('store');
+            Route::get('/{id}/edit',     [PurchaseController::class, 'edit'])->name('edit');
+            Route::patch('/{id}',        [PurchaseController::class, 'update'])->name('update');
+            Route::post('/{id}/confirm', [PurchaseController::class, 'confirm'])->name('confirm');
+            Route::post('/{id}/cancel',  [PurchaseController::class, 'cancel'])->name('cancel');
+        });
+        Route::middleware('role:procurement,warehouse')->group(function () {
             Route::get('/{id}/receipt',             [PurchaseController::class, 'createReceipt'])->name('receipt.create');
             Route::post('/{id}/receipt',            [PurchaseController::class, 'storeReceipt'])->name('receipt.store');
-            Route::get('/receipts/{rid}',           [PurchaseController::class, 'showReceipt'])->where('rid', '.*')->name('receipt.show');
             Route::post('/receipts/{rid}/validate', [PurchaseController::class, 'validateReceipt'])->where('rid', '.*')->name('receipt.validate');
+        });
+        Route::middleware('role:procurement,warehouse,finance')->group(function () {
+            Route::get('/',               [PurchaseController::class, 'index'])->name('index');
+            Route::get('/receipts/{rid}', [PurchaseController::class, 'showReceipt'])->where('rid', '.*')->name('receipt.show');
+            Route::get('/{id}',           [PurchaseController::class, 'show'])->name('show');
         });
     });
 
@@ -259,13 +276,13 @@ Route::middleware('auth.web')->group(function () {
     //   - Tambah/ubah hanya Owner — dijaga ganda: route middleware + controller
     // ══════════════════════════════════════════════════════════════════════
     Route::prefix('employees')->name('employees.')->group(function () {
-        // Semua role: index & show (data privat dikontrol di view per SR-14)
-        Route::get('/',     [EmployeeController::class, 'index'])->name('index');
-        Route::get('/{id}', [EmployeeController::class, 'show'])->name('show');
-
         // Hanya owner — EmployeeController::authorizeOwner() juga memvalidasi ini
         Route::get('/create',    [EmployeeController::class, 'create'])->name('create');
         Route::post('/',         [EmployeeController::class, 'store'])->name('store');
+
+        // Semua role: index & show (data privat dikontrol di view per SR-14)
+        Route::get('/',          [EmployeeController::class, 'index'])->name('index');
+        Route::get('/{id}',      [EmployeeController::class, 'show'])->name('show');
         Route::get('/{id}/edit', [EmployeeController::class, 'edit'])->name('edit');
         Route::patch('/{id}',    [EmployeeController::class, 'update'])->name('update');
     });

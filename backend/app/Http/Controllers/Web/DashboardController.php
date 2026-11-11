@@ -64,8 +64,8 @@ class DashboardController extends Controller
         // RBAC Check for Financial Details (SR-14 / T-36)
         $currentUser = Auth::user();
         $userRole = strtolower($currentUser?->role ?? 'finance');
-        // Non-financial roles: warehouse, server/waiter, host have financial metrics masked
-        $canViewFinancials = !in_array($userRole, ['warehouse', 'server', 'waiter', 'host']);
+        // Hanya owner & finance yang dapat melihat rincian finansial AR/AP (SR-14)
+        $canViewFinancials = in_array($userRole, ['owner', 'finance']);
 
         // ── Chart: Sales last 6 months ────────────────────────────────────
         $salesChart = [];

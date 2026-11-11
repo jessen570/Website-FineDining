@@ -74,15 +74,20 @@ class LeadController extends Controller
             'notes'            => 'nullable|string',
         ]);
 
-        // Generate lead_id
-        $last = CrmLead::orderByDesc('id')->first();
-        $seq  = $last ? ((int) ltrim(str_replace('L', '', $last->lead_id), '0') + 1) : 1;
-        $validated['lead_id'] = 'L' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+        // Generate lead_id safely
+        $maxNum = CrmLead::pluck('lead_id')
+            ->map(fn($lid) => (int) preg_replace('/\D/', '', (string) $lid))
+            ->max() ?: 0;
+        $validated['lead_id']          = 'L' . str_pad($maxNum + 1, 4, '0', STR_PAD_LEFT);
+        $validated['customer_id']      = $validated['customer_id'] ?: null;
+        $validated['expected_revenue'] = $validated['expected_revenue'] ?? 0;
+        $validated['probability']      = $validated['probability'] ?? 0;
 
         $lead = CrmLead::create($validated);
 
         AuditLog::log('CREATE', 'CrmLead', $lead->lead_id, null, null, $validated,
-            "Lead {$lead->lead_id} '{$lead->name}' dibuat.", Auth::user()->name, Auth::user()->role);
+            "Lead {$lead->lead_id} '{$lead->name}' dibuat.",
+            Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'user');
 
         return redirect()->route('crm.leads.show', $lead->lead_id)
             ->with('success', "Lead {$lead->lead_id} berhasil dibuat.");
@@ -135,6 +140,10 @@ class LeadController extends Controller
             'assigned_to'      => 'nullable|exists:users,id',
             'notes'            => 'nullable|string',
         ]);
+
+        $validated['customer_id']      = $validated['customer_id'] ?: null;
+        $validated['expected_revenue'] = $validated['expected_revenue'] ?? 0;
+        $validated['probability']      = $validated['probability'] ?? 0;
 
         $before = $lead->toArray();
         $lead->update($validated);

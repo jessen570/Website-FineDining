@@ -272,22 +272,28 @@
         @if(isset($approvalRecord) && $approvalRecord)
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Discount Approval</span>
-                <span class="badge {{ $approvalRecord->status === 'Approved' ? 'b-green' : ($approvalRecord->status === 'Rejected' ? 'b-red' : 'b-amber') }}">{{ $approvalRecord->status }}</span>
+                <span class="card-title">Persetujuan Diskon (SR-08)</span>
+                <x-badge :status="$approvalRecord->status" />
             </div>
             <div class="card-body">
                 <div style="display:flex;flex-direction:column;gap:10px">
                     <div>
-                        <div class="section-title" style="margin-bottom:2px">Approval Code</div>
+                        <div class="section-title" style="margin-bottom:2px">Kode Persetujuan</div>
+                        @if(in_array(auth()->user()->role ?? '', ['owner', 'finance']))
+                        <a href="{{ route('sales.discounts.show', $approvalRecord->approval_code) }}" style="font-family:monospace;font-size:12.5px;color:#18382E;font-weight:600;text-decoration:none">
+                            {{ $approvalRecord->approval_code }} ↗
+                        </a>
+                        @else
                         <div style="font-family:monospace;font-size:12.5px;color:#1E1C1A">{{ $approvalRecord->approval_code }}</div>
+                        @endif
                     </div>
                     <div>
-                        <div class="section-title" style="margin-bottom:2px">Approved/Reviewed By</div>
-                        <div style="font-size:13px;color:#1E1C1A">{{ $approvalRecord->approvedBy?->name ?? '—' }}</div>
+                        <div class="section-title" style="margin-bottom:2px">Diproses Oleh</div>
+                        <div style="font-size:13px;color:#1E1C1A">{{ $approvalRecord->approved_by ?? 'Menunggu tinjauan Finance/Owner' }}</div>
                     </div>
                     <div>
-                        <div class="section-title" style="margin-bottom:2px">Date</div>
-                        <div style="font-size:13px;color:#1E1C1A">{{ \Carbon\Carbon::parse($approvalRecord->updated_at)->format('d M Y, H:i') }}</div>
+                        <div class="section-title" style="margin-bottom:2px">Tanggal</div>
+                        <div style="font-size:13px;color:#1E1C1A">{{ \Carbon\Carbon::parse($approvalRecord->approved_at ?? $approvalRecord->updated_at)->format('d M Y, H:i') }}</div>
                     </div>
                 </div>
             </div>
@@ -295,11 +301,11 @@
         @elseif(($quotation->discount_percent ?? 0) > 10)
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Discount Approval</span>
-                <span class="badge b-amber">Required</span>
+                <span class="card-title">Persetujuan Diskon (SR-08)</span>
+                <span class="badge b-amber">Perlu Tinjauan</span>
             </div>
             <div class="card-body">
-                <p style="font-size:12.5px;color:#6B6560;margin:0">This quotation has a discount above 10% and requires Finance/Owner approval before confirming.</p>
+                <p style="font-size:12.5px;color:#6B6560;margin:0">Quotation ini memiliki diskon di atas 10% dan memerlukan persetujuan Finance/Owner.</p>
             </div>
         </div>
         @endif

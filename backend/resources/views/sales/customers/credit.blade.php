@@ -14,12 +14,13 @@
 
 @section('content')
 @php
-    $limit   = $check['credit_limit'] ?? 0;
-    $exp     = $exposure ?? 0;
-    $avail   = max(0, $limit - $exp);
-    $pct     = $limit > 0 ? min(100, round($exp / $limit * 100)) : 0;
-    $fillCol = $pct >= 90 ? '#EF4444' : ($pct >= 60 ? '#D97706' : '#10B981');
+    $limit     = $check['credit_limit'] ?? 0;
+    $exp       = $exposure ?? 0;
+    $avail     = max(0, $limit - $exp);
+    $rawPct    = $limit > 0 ? round($exp / $limit * 100) : 0;
+    $pct       = min(100, $rawPct);
     $overLimit = $limit > 0 && $exp > $limit;
+    $fillCol   = ($overLimit || $rawPct >= 90) ? '#EF4444' : ($rawPct >= 60 ? '#D97706' : '#10B981');
 @endphp
 
 <div class="page-header">
@@ -66,7 +67,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ $fillCol }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
         </div>
         <div class="kpi-label">Utilization</div>
-        <div class="kpi-value" style="color:{{ $fillCol }}">{{ $pct }}%</div>
+        <div class="kpi-value" style="color:{{ $fillCol }}">{{ $rawPct }}%</div>
         <div class="kpi-sub">Of credit limit used</div>
     </div>
 </div>
@@ -77,7 +78,7 @@
     <div class="card-body" style="padding:16px 24px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <div style="font-size:12px;font-weight:700;color:#8A8478;letter-spacing:.06em;text-transform:uppercase">Credit Utilization</div>
-            <div style="font-size:13px;font-weight:700;color:{{ $fillCol }}">{{ $pct }}% used</div>
+            <div style="font-size:13px;font-weight:700;color:{{ $fillCol }}">{{ $rawPct }}% used</div>
         </div>
         <div class="credit-bar" style="height:10px">
             <div class="credit-fill" style="width:{{ $pct }}%;background:{{ $fillCol }}"></div>
@@ -102,6 +103,13 @@
                         <div style="font-size:11.5px;color:#8A8478;margin-top:2px">Opening Accounts Receivable balance</div>
                     </div>
                     <div style="font-size:13.5px;font-weight:700;color:#1E1C1A">Rp {{ number_format($check['opening_ar'] ?? 0, 0, ',', '.') }}</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #F0EEE8">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:#343130">Unpaid Invoices</div>
+                        <div style="font-size:11.5px;color:#8A8478;margin-top:2px">Outstanding amount due on Customer Invoices</div>
+                    </div>
+                    <div style="font-size:13.5px;font-weight:700;color:#1E1C1A">Rp {{ number_format($check['unpaid_invoices'] ?? 0, 0, ',', '.') }}</div>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:2px solid #E8E4DA">
                     <div>
@@ -135,8 +143,8 @@
                     <tbody>
                         @foreach($orders as $o)
                         <tr>
-                            <td><a href="{{ route('sales.orders.show', $o) }}" style="color:#18382E;font-weight:600;text-decoration:none;font-family:monospace;font-size:11.5px">{{ $o->order_id }}</a></td>
-                            <td style="text-align:right;font-size:12.5px;font-weight:600">Rp {{ number_format($o->grand_total ?? 0, 0, ',', '.') }}</td>
+                            <td><a href="{{ route('sales.orders.show', $o->order_id) }}" style="color:#18382E;font-weight:600;text-decoration:none;font-family:monospace;font-size:11.5px">{{ $o->order_id }}</a></td>
+                            <td style="text-align:right;font-size:12.5px;font-weight:600">Rp {{ number_format($o->gross_amount ?? 0, 0, ',', '.') }}</td>
                             <td>
                                 @php $oMap=['Draft'=>'b-gray','Confirmed'=>'b-green','Done'=>'b-blue','Cancelled'=>'b-red']; @endphp
                                 <span class="badge {{ $oMap[$o->status] ?? 'b-gray' }}" style="font-size:10px">{{ $o->status }}</span>
