@@ -51,6 +51,7 @@
                     @foreach($tables as $t)
                         <option value="{{ $t->table_id }}" {{ old('table_id', $preTable) == $t->table_id ? 'selected' : '' }}>
                             {{ $t->table_id }} — {{ $t->floor }} ({{ $t->seats }} kursi)
+                            @if($t->status === 'occupied') [Terisi] @endif
                         </option>
                     @endforeach
                 </select>
@@ -78,7 +79,7 @@
                 <select name="customer_id" class="form-select {{ $errors->has('customer_id') ? 'is-error' : '' }}">
                     <option value="">— Walk-in / Tanpa Akun —</option>
                     @foreach($customers as $c)
-                        <option value="{{ $c->contact_id }}" {{ old('customer_id') == $c->contact_id ? 'selected' : '' }}>
+                        <option value="{{ $c->contact_id }}" {{ old('customer_id', $preCustomer ?? '') == $c->contact_id ? 'selected' : '' }}>
                             {{ $c->contact_id }} — {{ $c->name }}
                         </option>
                     @endforeach
@@ -91,7 +92,7 @@
                 <select name="booking_id" class="form-select {{ $errors->has('booking_id') ? 'is-error' : '' }}">
                     <option value="">— Tanpa Reservasi —</option>
                     @foreach($bookings as $bk)
-                        <option value="{{ $bk->booking_id }}" {{ old('booking_id', request('booking_id')) == $bk->booking_id ? 'selected' : '' }}>
+                        <option value="{{ $bk->booking_id }}" {{ old('booking_id', $preBooking ?? request('booking_id')) == $bk->booking_id ? 'selected' : '' }}>
                             {{ $bk->booking_id }} — {{ $bk->customer?->name }} — {{ $bk->table_id }}
                             ({{ $bk->start_time ? \Carbon\Carbon::parse($bk->start_time)->format('d/m H:i') : '' }})
                         </option>

@@ -38,7 +38,7 @@
 {{-- ── KPI Strip + Kapasitas Total (F-17) ──────────────────────────────── --}}
 @php
     $totalSeats    = \App\Models\RestaurantTable::sum('seats'); // 22
-    $occupiedSeats = \App\Models\Booking::whereIn('status',['Confirmed','Checked-In'])
+    $occupiedSeats = \App\Models\Booking::whereIn('bookings.status',['Confirmed','Checked-In'])
         ->join('restaurant_tables','bookings.table_id','=','restaurant_tables.table_id')
         ->sum('restaurant_tables.seats');
     $availableSeats = max(0, $totalSeats - $occupiedSeats);

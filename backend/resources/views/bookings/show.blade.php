@@ -239,12 +239,18 @@
                 Buka Table Order untuk mencatat pesanan makanan &amp; minuman. Server aktif wajib ditugaskan (SR-13).
             </div>
         </div>
+        @if(in_array(auth()->user()->role, ['owner','server','cashier','finance']))
         <a href="{{ route('table-orders.create') }}?booking_id={{ $booking->booking_id }}&table_id={{ $booking->table_id }}"
            class="btn btn-gold" style="white-space:nowrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/></svg>
             Buka Table Order
         </a>
+        @else
+        <div style="font-size:12px;color:#8A8478;background:#F7F5F0;border:1px solid #E8E4DA;border-radius:8px;padding:8px 14px">
+            Hubungi Server untuk membuka pesanan (SR-13)
+        </div>
+        @endif
     </div>
 </div>
 @endif

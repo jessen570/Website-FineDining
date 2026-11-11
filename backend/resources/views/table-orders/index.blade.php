@@ -15,10 +15,12 @@
         <h1 class="page-title">Pesanan Meja &amp; Floor Plan (Table Order)</h1>
         <p class="page-desc">Floor plan restoran terintegrasi — PBJT 10%, server aktif wajib (SR-13), split bill (SR-23).</p>
     </div>
+    @if(in_array(auth()->user()->role, ['owner','server','cashier','finance']))
     <a href="{{ route('table-orders.create') }}" class="btn btn-primary">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Buka Table Order
     </a>
+    @endif
 </div>
 
 @if(session('success'))
@@ -86,9 +88,10 @@
                     $activeBk = $t->bookings->first();
                     $activeOrd = $orders->where('table_id', $t->table_id)->first();
                 @endphp
-                <a href="{{ $t->status === 'available' ? route('table-orders.create').'?table_id='.$t->table_id : route('table-orders.index') }}"
+                <a href="{{ ($t->status === 'available' && in_array(auth()->user()->role, ['owner','server','cashier','finance'])) ? route('table-orders.create').'?table_id='.$t->table_id : '#' }}"
                    style="border:1.5px solid;border-radius:10px;padding:14px 12px;text-decoration:none;{{ $ss }};
-                          text-align:center;transition:box-shadow 0.15s;position:relative">
+                          text-align:center;transition:box-shadow 0.15s;position:relative;
+                          {{ !in_array(auth()->user()->role, ['owner','server','cashier','finance']) ? 'cursor:default;' : '' }}">
 
                     {{-- Jika ada order aktif, tampilkan badge --}}
                     @if($activeOrd)
@@ -114,7 +117,7 @@
                         </div>
                     @endif
 
-                    @if($t->status === 'available')
+                    @if($t->status === 'available' && in_array(auth()->user()->role, ['owner','server','cashier','finance']))
                         <div style="font-size:9.5px;margin-top:5px;color:inherit;opacity:0.6">Klik untuk buka order</div>
                     @endif
                 </a>

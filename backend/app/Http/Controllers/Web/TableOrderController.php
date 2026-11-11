@@ -36,17 +36,46 @@ class TableOrderController extends Controller
 
     public function create(Request $request)
     {
-        $tables    = RestaurantTable::where('status', 'available')->orderBy('table_id')->get();
+        // SR-13: Host hanya bisa booking, bukan table order
+        if (auth()->user()->role === 'host') {
+            return redirect()->route('bookings.index')
+                ->with('error', 'Hanya Server, Cashier, atau Owner yang dapat membuka Table Order (SR-13).');
+        }
+
+        // Ambil semua meja — termasuk occupied agar bisa dipakai dari booking yang sudah check-in
+        $tables    = RestaurantTable::orderBy('table_id')->get();
         $servers   = Employee::where('status', 'Aktif')->orderBy('name')->get();
         $customers = Contact::where('contact_type', 'Customer')->orderBy('name')->get();
         $bookings  = Booking::whereIn('status', ['Checked-In', 'Confirmed'])->orderByDesc('start_time')->get();
         $products  = Product::orderBy('variant_sku')->get();
-        $preTable  = $request->table_id;
-        return view('table-orders.create', compact('tables', 'servers', 'customers', 'bookings', 'products', 'preTable'));
+
+        // Auto-populate dari booking jika ada booking_id di query string
+        $preTable   = $request->table_id;
+        $preBooking = $request->booking_id;
+        $preCustomer = null;
+
+        if ($preBooking) {
+            $booking = Booking::with('customer')->where('booking_id', $preBooking)->first();
+            if ($booking) {
+                $preTable    = $preTable ?? $booking->table_id;
+                $preCustomer = $booking->customer_id;
+            }
+        }
+
+        return view('table-orders.create', compact(
+            'tables', 'servers', 'customers', 'bookings', 'products',
+            'preTable', 'preBooking', 'preCustomer'
+        ));
     }
 
     public function store(Request $request)
     {
+        // SR-13: Host tidak boleh buat table order
+        if (auth()->user()->role === 'host') {
+            return redirect()->route('bookings.index')
+                ->with('error', 'Hanya Server, Cashier, atau Owner yang dapat membuka Table Order (SR-13).');
+        }
+
         $request->validate([
             'table_id'   => 'required|string|exists:restaurant_tables,table_id',
             'server_id'  => 'required|string|exists:employees,employee_id',
