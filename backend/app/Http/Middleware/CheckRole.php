@@ -9,21 +9,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  ...$roles
-     */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         $user = $request->user();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated. Please log in.',
-            ], 401);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
         // Owner/GM has overarching superuser access
@@ -34,17 +28,13 @@ class CheckRole
         $allowedRoles = array_map('strtolower', $roles);
 
         if (!in_array(strtolower($user->role), $allowedRoles)) {
-            // Log access violation
             AuditLog::log(
-                'ACCESS_DENIED',
-                'Route',
-                $request->path(),
-                $request->method(),
+                'ACCESS_DENIED', 'Route',
+                $request->path(), $request->method(),
                 ['user_role' => $user->role],
                 ['required_roles' => $roles],
                 "Unauthorized access attempt by {$user->name} ({$user->role}) to {$request->method()} {$request->path()}",
-                $user->name,
-                $user->role
+                $user->name, $user->role
             );
 
             // API requests → JSON 403
@@ -55,11 +45,10 @@ class CheckRole
                 ], 403);
             }
 
-            // Web requests → abort dengan halaman 403
-            abort(403, "Akses ditolak. Peran '{$user->role}' tidak memiliki izin untuk halaman ini.");
+            // Web requests → abort dengan halaman 403 (ada error page dari teman)
+            abort(403, "Akses ditolak. Peran '{$user->role}' tidak memiliki izin untuk halaman ini. (SR-14)");
         }
 
         return $next($request);
     }
 }
-

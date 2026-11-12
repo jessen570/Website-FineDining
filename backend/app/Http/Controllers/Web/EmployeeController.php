@@ -15,9 +15,11 @@ class EmployeeController extends Controller
         $query = Employee::query();
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%')
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->search.'%')
                   ->orWhere('employee_id', 'like', '%'.$request->search.'%')
                   ->orWhere('department', 'like', '%'.$request->search.'%');
+            });
         }
 
         if ($request->filled('status')) {
