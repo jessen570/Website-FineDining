@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\ActivityLogController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\Crm\LeadController;
@@ -333,6 +334,13 @@ Route::middleware('auth.web')->group(function () {
             Route::get('/{id}/edit', [ContactController::class, 'edit'])->name('edit');
             Route::patch('/{id}',    [ContactController::class, 'update'])->name('update');
         });
+    });
+
+    // ══════════════════════════════════════════════════════════════════════
+    // LOG AKTIVITAS — khusus owner
+    // ══════════════════════════════════════════════════════════════════════
+    Route::middleware('role:owner')->group(function () {
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
 });
