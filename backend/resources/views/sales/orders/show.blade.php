@@ -109,12 +109,12 @@
                     <tbody>
                         @forelse($order->lines as $line)
                         @php
-                            $sub   = ($line->quantity??0) * ($line->unit_price??0) * (1-(($line->discount_percent??0)/100));
+                            $ordQty   = $line->ordered_qty ?? 0;
+                            $sub   = $ordQty * ($line->unit_price??0) * (1-(($line->discount_percent??0)/100));
                             $pbjt  = $sub * 0.10;
                             $total = $sub + $pbjt;
                             $delivQty = $line->delivered_qty ?? 0;
                             $invQty   = $line->invoiced_qty ?? 0;
-                            $ordQty   = $line->quantity ?? 0;
                         @endphp
                         <tr>
                             <td style="font-family:monospace;font-size:11.5px;color:#6B6560">{{ $line->product?->sku ?? '—' }}</td>
@@ -213,7 +213,7 @@
             <div class="card-header"><span class="card-title">Order Summary</span></div>
             <div class="card-body">
                 @php
-                    $subtotal = $order->lines->sum(fn($l) => ($l->quantity??0)*($l->unit_price??0)*(1-(($l->discount_percent??0)/100)));
+                    $subtotal = $order->lines->sum(fn($l) => ($l->ordered_qty??0)*($l->unit_price??0)*(1-(($l->discount_percent??0)/100)));
                     $discPct  = $order->discount_percent ?? 0;
                     $discount = $subtotal * $discPct / 100;
                     $afterDisc= $subtotal - $discount;

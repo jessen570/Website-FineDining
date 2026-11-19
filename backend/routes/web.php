@@ -112,14 +112,16 @@ Route::middleware('auth.web')->group(function () {
             Route::get('/',               [QuotationController::class, 'index'])->name('index');
             Route::get('/create',         [QuotationController::class, 'create'])->name('create');
             Route::post('/',              [QuotationController::class, 'store'])->name('store');
-            Route::get('/{id}',           [QuotationController::class, 'show'])->name('show');
-            Route::get('/{id}/edit',      [QuotationController::class, 'edit'])->name('edit');
-            Route::patch('/{id}',         [QuotationController::class, 'update'])->name('update');
-            Route::post('/{id}/send',     [QuotationController::class, 'send'])->name('send');
-            Route::post('/{id}/confirm',  [QuotationController::class, 'confirm'])->name('confirm');
-            Route::post('/{id}/cancel',   [QuotationController::class, 'cancel'])->name('cancel');
-            Route::get('/{id}/print',     [QuotationController::class, 'print'])->name('print');
-            Route::post('/{id}/to-order', [QuotationController::class, 'convertToOrder'])->name('to-order');
+            // suffix routes MUST come before the greedy /{id} catch-all
+            Route::get('/{id}/edit',      [QuotationController::class, 'edit'])->where('id', '.*')->name('edit');
+            Route::get('/{id}/print',     [QuotationController::class, 'print'])->where('id', '.*')->name('print');
+            Route::patch('/{id}',         [QuotationController::class, 'update'])->where('id', '.*')->name('update');
+            Route::post('/{id}/send',     [QuotationController::class, 'send'])->where('id', '.*')->name('send');
+            Route::post('/{id}/confirm',  [QuotationController::class, 'confirm'])->where('id', '.*')->name('confirm');
+            Route::post('/{id}/cancel',   [QuotationController::class, 'cancel'])->where('id', '.*')->name('cancel');
+            Route::post('/{id}/to-order', [QuotationController::class, 'convertToOrder'])->where('id', '.*')->name('to-order');
+            // greedy catch-all last
+            Route::get('/{id}',           [QuotationController::class, 'show'])->where('id', '.*')->name('show');
         });
 
         Route::prefix('sales/orders')->name('sales.orders.')->group(function () {

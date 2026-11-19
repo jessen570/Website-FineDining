@@ -41,5 +41,10 @@ class DeliveryOrder extends Model
     {
         return $this->hasMany(DeliveryOrderLine::class, 'delivery_id', 'delivery_id');
     }
+
+    public function invoice(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\Invoice::class, 'linked_delivery_id', 'delivery_id');
+    }
 }
 

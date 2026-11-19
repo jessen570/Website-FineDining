@@ -102,7 +102,41 @@
         <div class="ml-auto text-xs text-stone-400">{{ $invoices->total() }} dokumen ditemukan</div>
     </form>
 
-    {{-- Table --}}
+    {{-- Ready to Invoice --}}
+    @php
+        $readyToInvoice = \App\Models\DeliveryOrder::with(['salesOrder.customer'])
+            ->where('status', 'Done')
+            ->whereDoesntHave('invoice')
+            ->get();
+    @endphp
+    @if($readyToInvoice->count() > 0)
+    <div class="card" style="border-left:3px solid #C6A76B">
+        <div class="card-header">
+            <span class="card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C6A76B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:6px;vertical-align:middle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                {{ $readyToInvoice->count() }} Delivery Order siap diinvoice
+            </span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+            @foreach($readyToInvoice as $do)
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#F7F5F0;border:1px solid #E8E4DA;border-radius:8px">
+                <div>
+                    <span style="font-family:monospace;font-size:12.5px;font-weight:700;color:#18382E">{{ $do->delivery_id }}</span>
+                    <span style="font-size:12px;color:#8A8478;margin-left:8px">← SO {{ $do->sales_order_id }}</span>
+                    <span style="font-size:12px;color:#8A8478;margin-left:4px">· {{ $do->salesOrder?->customer?->name ?? '—' }}</span>
+                </div>
+                <form method="POST" action="{{ route('invoices.createFromDelivery', $do->delivery_id) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Buat Invoice
+                    </button>
+                </form>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
     <div class="card overflow-hidden">
         @if($invoices->isEmpty())
             <div class="empty-state">
