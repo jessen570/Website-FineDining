@@ -387,6 +387,46 @@
     .data-table .col-num { font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums; }
     .data-table .col-actions { white-space: nowrap; }
 
+    /* ─── Table Input Cells Optimization ────────────────────────────── */
+    .data-table td:has(.form-input),
+    .data-table th:has(.form-input),
+    .data-table td:has(.qty-input),
+    .data-table td:has(.price-input),
+    .data-table td:has(.disc-input),
+    .data-table td:has(.product-select) {
+        padding: 8px 6px;
+    }
+    .form-input.qty-input,
+    .qty-input,
+    .qty-inp {
+        min-width: 80px !important;
+        width: 100% !important;
+        text-align: center !important;
+        padding: 6px 4px !important;
+        font-weight: 600 !important;
+        font-size: 13.5px !important;
+        box-sizing: border-box !important;
+    }
+    .form-input.price-input,
+    .price-input,
+    .price-inp {
+        min-width: 120px !important;
+        width: 100% !important;
+        text-align: right !important;
+        padding: 6px 8px !important;
+        font-size: 13.5px !important;
+        box-sizing: border-box !important;
+    }
+    .form-input.disc-input,
+    .disc-input {
+        min-width: 65px !important;
+        width: 100% !important;
+        text-align: right !important;
+        padding: 6px 6px !important;
+        font-size: 13px !important;
+        box-sizing: border-box !important;
+    }
+
     /* ─── Badges ──────────────────────────────────────────────────────── */
     .badge {
         display: inline-flex; align-items: center; gap: 4px;

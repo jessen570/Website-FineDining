@@ -428,6 +428,31 @@ class QuotationController extends Controller
                 }
             }
 
+            // Auto-create Delivery Order for the confirmed SO (T-15 Integration)
+            $doSeq = \App\Models\DeliveryOrder::max('id') + 1;
+            $doId  = 'WH/OUT/' . str_pad($doSeq, 4, '0', STR_PAD_LEFT);
+
+            $deliveryOrder = \App\Models\DeliveryOrder::create([
+                'delivery_id'        => $doId,
+                'sales_order_id'     => $orderId,
+                'status'             => 'Ready',
+                'delivery_date'      => now()->addDay()->toDateString(),
+                'cost_of_goods_sold' => 0,
+                'is_posted'          => false,
+            ]);
+
+            foreach ($q->lines as $ql) {
+                \App\Models\DeliveryOrderLine::create([
+                    'delivery_id'   => $doId,
+                    'variant_sku'   => $ql->variant_sku,
+                    'ordered_qty'   => $ql->quantity,
+                    'delivered_qty' => 0,
+                    'backorder_qty' => 0,
+                    'standard_cost' => \App\Models\Product::where('variant_sku', $ql->variant_sku)->value('standard_cost') ?? 0,
+                    'subtotal_cogs' => 0,
+                ]);
+            }
+
             // SR-08 transparency: if discount > 10%, ensure there's a Pending approval record
             // so Finance can review. Only create if none exists for this quotation.
             $disc = (float) $q->discount_percent;

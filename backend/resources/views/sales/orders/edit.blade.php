@@ -101,12 +101,12 @@
                             <tr>
                                 <th style="width:30px">#</th>
                                 <th style="min-width:180px">Product</th>
-                                <th style="width:70px;text-align:right">Qty</th>
-                                <th style="width:120px;text-align:right">Unit Price</th>
-                                <th style="width:70px;text-align:right">Disc%</th>
-                                <th style="width:110px;text-align:right">Subtotal</th>
-                                <th style="width:100px;text-align:right">PBJT</th>
-                                <th style="width:110px;text-align:right">Total</th>
+                                <th style="width:90px;min-width:90px;text-align:center">Qty</th>
+                                <th style="width:130px;min-width:130px;text-align:right">Unit Price</th>
+                                <th style="width:80px;min-width:80px;text-align:right">Disc%</th>
+                                <th style="width:115px;text-align:right">Subtotal</th>
+                                <th style="width:95px;text-align:right">PBJT</th>
+                                <th style="width:115px;text-align:right">Total</th>
                                 <th style="width:40px"></th>
                             </tr>
                         </thead>
@@ -118,9 +118,9 @@
                                 $total = $sub+$pbjt;
                             @endphp
                             <tr data-line="{{ $idx }}">
-                                <td style="color:#B8B2A6;font-size:12px">{{ $idx+1 }}</td>
-                                <td>
-                                    <select name="lines[{{ $idx }}][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px">
+                                <td style="color:#B8B2A6;font-size:12px;padding:8px 6px">{{ $idx+1 }}</td>
+                                <td style="padding:8px 6px">
+                                    <select name="lines[{{ $idx }}][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px">
                                         <option value="">— Select product —</option>
                                         @foreach($products as $product)
                                         <option value="{{ $product->id }}" data-price="{{ $product->sales_price ?? 0 }}" {{ $line->product_id == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
@@ -128,13 +128,13 @@
                                     </select>
                                     <input type="hidden" name="lines[{{ $idx }}][id]" value="{{ $line->id }}">
                                 </td>
-                                <td><input type="number" name="lines[{{ $idx }}][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="{{ $line->quantity ?? 1 }}" min="1"></td>
-                                <td><input type="number" name="lines[{{ $idx }}][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="{{ $line->unit_price ?? 0 }}" min="0"></td>
-                                <td><input type="number" name="lines[{{ $idx }}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="{{ $line->discount_percent ?? 0 }}" min="0" max="100"></td>
-                                <td style="text-align:right;font-size:12.5px" class="line-subtotal">Rp {{ number_format($sub, 0, ',', '.') }}</td>
-                                <td style="text-align:right;font-size:12.5px;color:#6B6560" class="line-pbjt">Rp {{ number_format($pbjt, 0, ',', '.') }}</td>
-                                <td style="text-align:right;font-size:13px;font-weight:700" class="line-total">Rp {{ number_format($total, 0, ',', '.') }}</td>
-                                <td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[{{ $idx }}][quantity]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="{{ $line->quantity ?? 1 }}" min="1"></td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[{{ $idx }}][unit_price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="{{ $line->unit_price ?? 0 }}" min="0"></td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[{{ $idx }}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:6px 6px;font-size:13px;min-width:65px;width:100%" value="{{ $line->discount_percent ?? 0 }}" min="0" max="100"></td>
+                                <td style="text-align:right;font-size:12.5px;padding:8px 6px" class="line-subtotal">Rp {{ number_format($sub, 0, ',', '.') }}</td>
+                                <td style="text-align:right;font-size:12.5px;color:#6B6560;padding:8px 6px" class="line-pbjt">Rp {{ number_format($pbjt, 0, ',', '.') }}</td>
+                                <td style="text-align:right;font-size:13px;font-weight:700;padding:8px 6px" class="line-total">Rp {{ number_format($total, 0, ',', '.') }}</td>
+                                <td style="padding:8px 6px">
                                     <button type="button" class="btn btn-danger btn-xs remove-line">
                                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     </button>
@@ -142,22 +142,22 @@
                             </tr>
                             @empty
                             <tr data-line="0">
-                                <td style="color:#B8B2A6;font-size:12px">1</td>
-                                <td>
-                                    <select name="lines[0][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px">
+                                <td style="color:#B8B2A6;font-size:12px;padding:8px 6px">1</td>
+                                <td style="padding:8px 6px">
+                                    <select name="lines[0][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px">
                                         <option value="">— Select product —</option>
                                         @foreach($products as $product)
                                         <option value="{{ $product->id }}" data-price="{{ $product->sales_price ?? 0 }}">{{ $product->name }}</option>
                                         @endforeach
                                     </select>
                                 </td>
-                                <td><input type="number" name="lines[0][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="1" min="1"></td>
-                                <td><input type="number" name="lines[0][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0"></td>
-                                <td><input type="number" name="lines[0][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0" max="100"></td>
-                                <td style="text-align:right;font-size:12.5px" class="line-subtotal">Rp 0</td>
-                                <td style="text-align:right;font-size:12.5px;color:#6B6560" class="line-pbjt">Rp 0</td>
-                                <td style="text-align:right;font-size:13px;font-weight:700" class="line-total">Rp 0</td>
-                                <td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[0][quantity]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="1" min="1"></td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[0][unit_price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="0" min="0"></td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[0][discount_percent]" class="form-input disc-input" style="text-align:right;padding:6px 6px;font-size:13px;min-width:65px;width:100%" value="0" min="0" max="100"></td>
+                                <td style="text-align:right;font-size:12.5px;padding:8px 6px" class="line-subtotal">Rp 0</td>
+                                <td style="text-align:right;font-size:12.5px;color:#6B6560;padding:8px 6px" class="line-pbjt">Rp 0</td>
+                                <td style="text-align:right;font-size:13px;font-weight:700;padding:8px 6px" class="line-total">Rp 0</td>
+                                <td style="padding:8px 6px">
                                     <button type="button" class="btn btn-danger btn-xs remove-line">
                                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     </button>
@@ -272,15 +272,15 @@
         tr.setAttribute('data-line', idx);
         const opts = Array.from(document.querySelector('.product-select').options).slice(1)
             .map(o => `<option value="${o.value}" data-price="${o.dataset.price}">${o.text}</option>`).join('');
-        tr.innerHTML = `<td style="color:#B8B2A6;font-size:12px">${tbody.children.length+1}</td>
-            <td><select name="lines[${idx}][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px"><option value="">— Select product —</option>${opts}</select></td>
-            <td><input type="number" name="lines[${idx}][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="1" min="1"></td>
-            <td><input type="number" name="lines[${idx}][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0"></td>
-            <td><input type="number" name="lines[${idx}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0" max="100"></td>
-            <td style="text-align:right;font-size:12.5px" class="line-subtotal">Rp 0</td>
-            <td style="text-align:right;font-size:12.5px;color:#6B6560" class="line-pbjt">Rp 0</td>
-            <td style="text-align:right;font-size:13px;font-weight:700" class="line-total">Rp 0</td>
-            <td><button type="button" class="btn btn-danger btn-xs remove-line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>`;
+        tr.innerHTML = `<td style="color:#B8B2A6;font-size:12px;padding:8px 6px">${tbody.children.length+1}</td>
+            <td style="padding:8px 6px"><select name="lines[${idx}][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px"><option value="">— Select product —</option>${opts}</select></td>
+            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][quantity]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="1" min="1"></td>
+            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][unit_price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="0" min="0"></td>
+            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:6px 6px;font-size:13px;min-width:65px;width:100%" value="0" min="0" max="100"></td>
+            <td style="text-align:right;font-size:12.5px;padding:8px 6px" class="line-subtotal">Rp 0</td>
+            <td style="text-align:right;font-size:12.5px;color:#6B6560;padding:8px 6px" class="line-pbjt">Rp 0</td>
+            <td style="text-align:right;font-size:13px;font-weight:700;padding:8px 6px" class="line-total">Rp 0</td>
+            <td style="padding:8px 6px"><button type="button" class="btn btn-danger btn-xs remove-line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></td>`;
         tbody.appendChild(tr);
         bindRow(tr);
         recalcAll();
