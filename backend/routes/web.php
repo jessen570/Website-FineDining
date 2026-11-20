@@ -335,6 +335,7 @@ Route::middleware('auth.web')->group(function () {
             Route::get('/{id}',      [ContactController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [ContactController::class, 'edit'])->name('edit');
             Route::patch('/{id}',    [ContactController::class, 'update'])->name('update');
+            Route::delete('/{id}',   [ContactController::class, 'destroy'])->name('destroy');
         });
     });
 

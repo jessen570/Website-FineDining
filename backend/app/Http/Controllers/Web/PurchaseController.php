@@ -14,6 +14,7 @@ use App\Models\Receipt;
 use App\Models\ReceiptLine;
 use App\Models\StockLevel;
 use App\Models\StockMove;
+use App\Models\VendorPricelist;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -57,13 +58,37 @@ class PurchaseController extends Controller
             'lines'        => 'required|array|min:1',
             'lines.*.variant_sku'  => 'required|string|exists:products,variant_sku',
             'lines.*.qty'          => 'required|numeric|min:1',
-            'lines.*.unit_price'   => 'required|numeric|min:0',
+            'lines.*.unit_price'   => 'nullable|numeric|min:0',
         ]);
+
+        $allowedSkus = VendorPricelist::where('vendor_id', $request->vendor_id)
+            ->pluck('variant_sku')
+            ->all();
+
+        foreach ($request->lines as $line) {
+            if (!in_array($line['variant_sku'], $allowedSkus, true)) {
+                return back()->withInput()->with('error', "Produk {$line['variant_sku']} tidak terdaftar pada vendor yang dipilih.");
+            }
+        }
 
         $total = 0;
         $lines = [];
         foreach ($request->lines as $line) {
-            $lineTotal = round($line['qty'] * $line['unit_price'], 2);
+            $lockedPrice = $this->resolveLockedPurchasePrice($request->vendor_id, $line['variant_sku']);
+            if (isset($line['unit_price']) && abs((float) $line['unit_price'] - $lockedPrice) > 0.01) {
+                AuditLog::log(
+                    'ATTEMPT_PRICE_EDIT',
+                    'PurchaseOrder',
+                    'NEW_PO',
+                    null,
+                    ['submitted_price' => (float) $line['unit_price']],
+                    ['enforced_price' => $lockedPrice, 'variant_sku' => $line['variant_sku']],
+                    "Percobaan ubah harga PO untuk {$line['variant_sku']} ditolak; harga dikunci ke Rp " . number_format($lockedPrice, 0, ',', '.'),
+                    Auth::user()->name,
+                    Auth::user()->role
+                );
+            }
+            $lineTotal = round($line['qty'] * $lockedPrice, 2);
             $total    += $lineTotal;
             $lines[]   = [
                 'variant_sku'        => $line['variant_sku'],
@@ -71,9 +96,13 @@ class PurchaseController extends Controller
                 'received_qty'       => 0,
                 'accepted_qty'       => 0,
                 'billed_qty'         => 0,
-                'unit_purchase_price'=> (float) $line['unit_price'],
+                'unit_purchase_price'=> $lockedPrice,
                 'subtotal'           => $lineTotal,
             ];
+        }
+
+        if ($termError = $this->validatePaymentTermForTotal($total, $request->payment_terms)) {
+            return back()->withInput()->with('error', $termError);
         }
 
         $seq  = PurchaseOrder::max('id') + 1;
@@ -139,17 +168,56 @@ class PurchaseController extends Controller
             'lines'        => 'required|array|min:1',
             'lines.*.variant_sku'  => 'required|string|exists:products,variant_sku',
             'lines.*.qty'          => 'required|numeric|min:1',
-            'lines.*.unit_price'   => 'required|numeric|min:0',
+            'lines.*.unit_price'   => 'nullable|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($request, $po) {
-            $total = 0;
-            $lines = [];
-            foreach ($request->lines as $line) {
-                $lineTotal = round($line['qty'] * $line['unit_price'], 2);
-                $total    += $lineTotal;
-                $lines[]   = ['variant_sku' => $line['variant_sku'], 'ordered_qty' => (float)$line['qty'], 'received_qty' => 0, 'accepted_qty' => 0, 'billed_qty' => 0, 'unit_purchase_price' => (float)$line['unit_price'], 'subtotal' => $lineTotal];
+        $allowedSkus = VendorPricelist::where('vendor_id', $request->vendor_id)
+            ->pluck('variant_sku')
+            ->all();
+
+        foreach ($request->lines as $line) {
+            if (!in_array($line['variant_sku'], $allowedSkus, true)) {
+                return back()->withInput()->with('error', "Produk {$line['variant_sku']} tidak terdaftar pada vendor yang dipilih.");
             }
+        }
+
+        $allowedSkus = VendorPricelist::where('vendor_id', $request->vendor_id)
+            ->pluck('variant_sku')
+            ->all();
+
+        foreach ($request->lines as $line) {
+            if (!in_array($line['variant_sku'], $allowedSkus, true)) {
+                return back()->withInput()->with('error', "Produk {$line['variant_sku']} tidak terdaftar pada vendor yang dipilih.");
+            }
+        }
+
+        $total = 0;
+        $lines = [];
+        foreach ($request->lines as $line) {
+            $lockedPrice = $this->resolveLockedPurchasePrice($request->vendor_id, $line['variant_sku']);
+            if (isset($line['unit_price']) && abs((float) $line['unit_price'] - $lockedPrice) > 0.01) {
+                AuditLog::log(
+                    'ATTEMPT_PRICE_EDIT',
+                    'PurchaseOrder',
+                    $po->po_id,
+                    null,
+                    ['submitted_price' => (float) $line['unit_price']],
+                    ['enforced_price' => $lockedPrice, 'variant_sku' => $line['variant_sku']],
+                    "Percobaan ubah harga PO {$po->po_id} untuk {$line['variant_sku']} ditolak; harga dikunci ke Rp " . number_format($lockedPrice, 0, ',', '.'),
+                    Auth::user()->name,
+                    Auth::user()->role
+                );
+            }
+            $lineTotal = round($line['qty'] * $lockedPrice, 2);
+            $total    += $lineTotal;
+            $lines[]   = ['variant_sku' => $line['variant_sku'], 'ordered_qty' => (float)$line['qty'], 'received_qty' => 0, 'accepted_qty' => 0, 'billed_qty' => 0, 'unit_purchase_price' => $lockedPrice, 'subtotal' => $lineTotal];
+        }
+
+        if ($termError = $this->validatePaymentTermForTotal($total, $request->payment_terms)) {
+            return back()->withInput()->with('error', $termError);
+        }
+
+        DB::transaction(function () use ($request, $po, $total, $lines) {
             $before = $po->toArray();
             $po->update(['vendor_id' => $request->vendor_id, 'order_date' => $request->order_date, 'payment_terms' => $request->payment_terms, 'total_amount' => $total, 'notes' => $request->notes]);
             PurchaseOrderLine::where('po_id', $po->po_id)->delete();
@@ -160,6 +228,47 @@ class PurchaseController extends Controller
         });
 
         return redirect()->route('purchase.show', $id)->with('success', "PO diperbarui.");
+    }
+
+    /**
+     * Ambil harga beli permanen dari VendorPricelist (prioritas) atau Product.standard_cost.
+     */
+    private function resolveLockedPurchasePrice(string $vendorId, string $variantSku): float
+    {
+        $pricelist = VendorPricelist::where('vendor_id', $vendorId)
+            ->where('variant_sku', $variantSku)
+            ->first();
+
+        if ($pricelist) {
+            return (float) $pricelist->unit_purchase_price;
+        }
+
+        return (float) (Product::where('variant_sku', $variantSku)->value('standard_cost') ?? 0);
+    }
+
+    /**
+     * Aturan manajemen keuangan untuk termin pembayaran PO berdasarkan total nominal:
+     * - < Rp 3.000.000        : wajib Tunai (Cash)
+     * - Rp 3.000.000 - 10 jt  : 7 hari atau 14 hari
+     * - > Rp 10.000.000       : 14 hari atau 30 hari
+     */
+    private function validatePaymentTermForTotal(float $total, string $paymentTerms): ?string
+    {
+        if ($total < 3000000) {
+            return $paymentTerms === 'Tunai'
+                ? null
+                : 'Pembelian di bawah Rp 3.000.000 wajib menggunakan termin Tunai (Cash).';
+        }
+
+        if ($total <= 10000000) {
+            return in_array($paymentTerms, ['7 hari', '14 hari'], true)
+                ? null
+                : 'Pembelian Rp 3.000.000 – Rp 10.000.000 wajib menggunakan termin 7 hari atau 14 hari.';
+        }
+
+        return in_array($paymentTerms, ['14 hari', '30 hari'], true)
+            ? null
+            : 'Pembelian di atas Rp 10.000.000 wajib menggunakan termin 14 hari atau 30 hari.';
     }
 
     public function confirm(Request $request, string $id)

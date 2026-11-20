@@ -86,7 +86,20 @@
                 <span class="badge b-gray ml-1" style="font-size:10px">{{ $contact->customer_type }}</span>
             @endif
         </div>
-        <a href="{{ route('contacts.edit', $contact->contact_id) }}" class="btn btn-outline btn-sm">Edit</a>
+        @if($contact->contact_type !== 'Vendor' || in_array(strtolower(auth()->user()->role ?? ''), ['owner', 'procurement'], true))
+        <div style="display:flex;gap:8px;align-items:center">
+            <a href="{{ route('contacts.edit', $contact->contact_id) }}" class="btn btn-outline btn-sm">Edit</a>
+            @if(($contact->contact_type === 'Vendor' && in_array(strtolower(auth()->user()->role ?? ''), ['owner', 'procurement'], true))
+                || ($contact->contact_type === 'Customer' && in_array(strtolower(auth()->user()->role ?? ''), ['owner', 'finance', 'host'], true)))
+            <form method="POST" action="{{ route('contacts.destroy', $contact->contact_id) }}"
+                  onsubmit="return confirm('Yakin ingin menghapus {{ strtolower($contact->contact_type) }} {{ addslashes($contact->name) }}?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+            </form>
+            @endif
+        </div>
+        @endif
     </div>
     <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
@@ -156,6 +169,41 @@
         </div>
     </div>
 </div>
+
+@if($contact->contact_type === 'Vendor')
+<div class="card mb-5">
+    <div class="card-header">
+        <span class="card-title">Produk &amp; Harga Beli Terdaftar (Pricelist Vendor)</span>
+        <span class="badge b-forest">{{ $pricelists->count() }} produk</span>
+    </div>
+    @if($pricelists->count())
+    <div style="overflow-x:auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Nama Produk</th>
+                    <th style="text-align:right">Harga Beli Vendor</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($pricelists as $pl)
+                <tr>
+                    <td class="text-mono font-semibold">{{ $pl->variant_sku }}</td>
+                    <td>{{ $pl->product?->name ?? '—' }}</td>
+                    <td style="text-align:right;font-weight:700;color:#18382E">Rp {{ number_format($pl->unit_purchase_price, 0, ',', '.') }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @else
+    <div class="card-body">
+        <p style="font-size:12.5px;color:#8A8478;text-align:center">Belum ada produk terdaftar untuk vendor ini. Klik Edit (Procurement/Owner) untuk mendaftarkan produk &amp; harga.</p>
+    </div>
+    @endif
+</div>
+@endif
 
 {{-- ── Audit Log ────────────────────────────────────────────────────────── --}}
 @php

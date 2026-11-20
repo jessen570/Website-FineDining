@@ -56,9 +56,11 @@
 
             <div class="form-group">
                 <label class="form-label">Tipe Kontak *</label>
-                <select name="contact_type" class="form-select" required>
+                <select name="contact_type" class="form-select" onchange="toggleEditVendorSection(this.value)" required>
                     <option value="Customer" {{ old('contact_type', $contact->contact_type) == 'Customer' ? 'selected' : '' }}>Customer</option>
+                    @if($canManageVendors)
                     <option value="Vendor"   {{ old('contact_type', $contact->contact_type) == 'Vendor'   ? 'selected' : '' }}>Vendor</option>
+                    @endif
                 </select>
             </div>
 
@@ -119,10 +121,92 @@
     </div>
 </div>
 
+@if($canManageVendors)
+<div class="card mb-5" id="vendor-pricelist-section" style="{{ old('contact_type', $contact->contact_type) === 'Vendor' ? '' : 'display:none' }}">
+    <div class="card-header">
+        <div>
+            <span class="card-title">Produk &amp; Harga Beli Vendor (Pricelist)</span>
+            <p style="font-size:11.5px;color:#8A8478;margin-top:2px">Daftar produk dan harga tetap yang dijual oleh vendor ini.</p>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addVendorItem()">+ Tambah Produk</button>
+    </div>
+    <div style="overflow-x:auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:55%">Produk (SKU)</th>
+                    <th style="width:35%;text-align:right">Harga Beli Vendor (Rp)</th>
+                    <th style="width:10%"></th>
+                </tr>
+            </thead>
+            <tbody id="vendor-items-body">
+                @php
+                    $existingItems = $pricelists->map(fn($pl) => ['variant_sku' => $pl->variant_sku, 'unit_purchase_price' => (float)$pl->unit_purchase_price])->toArray();
+                    $editItems = old('vendor_items', !empty($existingItems) ? $existingItems : [['variant_sku' => '', 'unit_purchase_price' => 0]]);
+                @endphp
+                @foreach($editItems as $idx => $vi)
+                <tr id="vi-row-{{ $idx }}">
+                    <td>
+                        <select name="vendor_items[{{ $idx }}][variant_sku]" class="form-select">
+                            <option value="">— Pilih Produk —</option>
+                            @foreach($products as $p)
+                                <option value="{{ $p->variant_sku }}" {{ ($vi['variant_sku'] ?? '') == $p->variant_sku ? 'selected' : '' }}>
+                                    {{ $p->variant_sku }} — {{ $p->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="vendor_items[{{ $idx }}][unit_purchase_price]" class="form-input"
+                            value="{{ $vi['unit_purchase_price'] ?? 0 }}" min="0" step="100" style="text-align:right">
+                    </td>
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn-ghost btn-xs" onclick="removeVendorItem({{ $idx }})" style="color:#DC2626" title="Hapus">✕</button>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 <div style="display:flex;gap:10px;justify-content:flex-end">
     <a href="{{ route('contacts.show', $contact->contact_id) }}" class="btn btn-outline">Batal</a>
     <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
 </div>
 </form>
 </div>
+
+@push('scripts')
+<script>
+const vendorProducts = @json($products->map(fn($p) => ['variant_sku' => $p->variant_sku, 'name' => $p->name]));
+let viCount = {{ count($editItems ?? [[]]) }};
+
+function toggleEditVendorSection(type) {
+    const vpSec = document.getElementById('vendor-pricelist-section');
+    if (vpSec) vpSec.style.display = (type === 'Vendor') ? '' : 'none';
+}
+
+function addVendorItem() {
+    const idx = viCount++;
+    const body = document.getElementById('vendor-items-body');
+    const opts = vendorProducts.map(p => `<option value="${p.variant_sku}">${p.variant_sku} — ${p.name}</option>`).join('');
+    const tr = document.createElement('tr');
+    tr.id = `vi-row-${idx}`;
+    tr.innerHTML = `
+        <td><select name="vendor_items[${idx}][variant_sku]" class="form-select"><option value="">— Pilih Produk —</option>${opts}</select></td>
+        <td><input type="number" name="vendor_items[${idx}][unit_purchase_price]" class="form-input" value="0" min="0" step="100" style="text-align:right"></td>
+        <td style="text-align:center"><button type="button" class="btn btn-ghost btn-xs" onclick="removeVendorItem(${idx})" style="color:#DC2626" title="Hapus">✕</button></td>`;
+    body.appendChild(tr);
+}
+
+function removeVendorItem(idx) {
+    const row = document.getElementById(`vi-row-${idx}`);
+    if (row && document.querySelectorAll('#vendor-items-body tr').length > 1) {
+        row.remove();
+    }
+}
+</script>
+@endpush
 @endsection

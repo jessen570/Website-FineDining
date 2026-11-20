@@ -52,14 +52,27 @@
                 @error('name')<p class="form-error">{{ $message }}</p>@enderror
             </div>
 
+            @php
+                $isProc = strtolower(auth()->user()->role ?? '') === 'procurement';
+                $reqType = in_array(request('type'), ['Customer', 'Vendor'], true) ? request('type') : ($isProc ? 'Vendor' : 'Customer');
+                if (!$canManageVendors && $reqType === 'Vendor') {
+                    $reqType = 'Customer';
+                }
+                $defaultType = old('contact_type', $reqType);
+            @endphp
             <div class="form-group">
                 <label class="form-label">Tipe Kontak *</label>
                 <select name="contact_type" class="form-select {{ $errors->has('contact_type') ? 'is-error' : '' }}"
                     onchange="toggleCustomerVendorFields(this.value)" required>
                     <option value="">— Pilih Tipe —</option>
-                    <option value="Customer" {{ old('contact_type') == 'Customer' ? 'selected' : '' }}>Customer (Pelanggan)</option>
-                    <option value="Vendor" {{ old('contact_type') == 'Vendor' ? 'selected' : '' }}>Vendor (Pemasok)</option>
+                    <option value="Customer" {{ $defaultType == 'Customer' ? 'selected' : '' }}>Customer (Pelanggan)</option>
+                    @if($canManageVendors)
+                    <option value="Vendor" {{ $defaultType == 'Vendor' ? 'selected' : '' }}>Vendor (Pemasok)</option>
+                    @endif
                 </select>
+                @if(!$canManageVendors)
+                <p class="form-hint">Pendaftaran Vendor baru hanya dapat dilakukan oleh role Procurement atau Owner.</p>
+                @endif
                 @error('contact_type')<p class="form-error">{{ $message }}</p>@enderror
             </div>
 
@@ -89,7 +102,7 @@
     <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
 
-            <div class="form-group">
+            <div class="form-group" id="credit-limit-group">
                 <label class="form-label">Credit Limit (Rp)</label>
                 <input type="number" name="credit_limit" class="form-input {{ $errors->has('credit_limit') ? 'is-error' : '' }}"
                     value="{{ old('credit_limit', 0) }}" min="0" step="1000" placeholder="0">
@@ -100,21 +113,20 @@
             <div class="form-group">
                 <label class="form-label">Payment Terms</label>
                 <select name="payment_terms" class="form-select {{ $errors->has('payment_terms') ? 'is-error' : '' }}">
-                    <option value="">— Pilih —</option>
                     @foreach(['Tunai','Tunai / 7 hari','7 hari','14 hari','30 hari'] as $t)
-                        <option value="{{ $t }}" {{ old('payment_terms') == $t ? 'selected' : '' }}>{{ $t }}</option>
+                        <option value="{{ $t }}" {{ old('payment_terms', 'Tunai') == $t ? 'selected' : '' }}>{{ $t }}</option>
                     @endforeach
                 </select>
                 @error('payment_terms')<p class="form-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="opening-ar-group">
                 <label class="form-label">Opening AR (Piutang Awal)</label>
                 <input type="number" name="opening_ar" class="form-input" value="{{ old('opening_ar', 0) }}" min="0">
                 <p class="form-hint">Saldo piutang awal sebelum sistem dipakai. Masukkan 0 jika tidak ada.</p>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="opening-ap-group">
                 <label class="form-label">Opening AP (Utang Awal)</label>
                 <input type="number" name="opening_ap" class="form-input" value="{{ old('opening_ap', 0) }}" min="0">
                 <p class="form-hint">Saldo utang awal ke vendor ini. Masukkan 0 jika tidak ada.</p>
@@ -122,6 +134,54 @@
         </div>
     </div>
 </div>
+
+@if($canManageVendors)
+{{-- Produk & Harga Beli Vendor (Pricelist) --}}
+<div class="card mb-5" id="vendor-pricelist-section" style="display:none">
+    <div class="card-header">
+        <div>
+            <span class="card-title">Produk &amp; Harga Beli Vendor (Pricelist)</span>
+            <p style="font-size:11.5px;color:#8A8478;margin-top:2px">Daftarkan produk yang dijual vendor ini beserta harga tetapnya untuk pembuatan RFQ/PO.</p>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addVendorItem()">+ Tambah Produk</button>
+    </div>
+    <div style="overflow-x:auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:55%">Produk (SKU)</th>
+                    <th style="width:35%;text-align:right">Harga Beli Vendor (Rp)</th>
+                    <th style="width:10%"></th>
+                </tr>
+            </thead>
+            <tbody id="vendor-items-body">
+                @php $oldItems = old('vendor_items', [['variant_sku' => '', 'unit_purchase_price' => 0]]); @endphp
+                @foreach($oldItems as $idx => $vi)
+                <tr id="vi-row-{{ $idx }}">
+                    <td>
+                        <select name="vendor_items[{{ $idx }}][variant_sku]" class="form-select">
+                            <option value="">— Pilih Produk —</option>
+                            @foreach($products as $p)
+                                <option value="{{ $p->variant_sku }}" {{ ($vi['variant_sku'] ?? '') == $p->variant_sku ? 'selected' : '' }}>
+                                    {{ $p->variant_sku }} — {{ $p->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="vendor_items[{{ $idx }}][unit_purchase_price]" class="form-input"
+                            value="{{ $vi['unit_purchase_price'] ?? 0 }}" min="0" step="100" style="text-align:right">
+                    </td>
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn-ghost btn-xs" onclick="removeVendorItem({{ $idx }})" style="color:#DC2626" title="Hapus">✕</button>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
 
 <div style="display:flex;gap:10px;justify-content:flex-end">
     <a href="{{ route('contacts.index') }}" class="btn btn-outline">Batal</a>
@@ -132,10 +192,43 @@
 
 @push('scripts')
 <script>
+const vendorProducts = @json($products->map(fn($p) => ['variant_sku' => $p->variant_sku, 'name' => $p->name]));
+let viCount = {{ count(old('vendor_items', [['variant_sku' => '']])) }};
+
 function toggleCustomerVendorFields(type) {
+    const isVendor = (type === 'Vendor');
     const ctGroup = document.getElementById('customer-type-group');
-    if (ctGroup) ctGroup.style.display = (type === 'Vendor') ? 'none' : '';
+    if (ctGroup) ctGroup.style.display = isVendor ? 'none' : '';
+    const clGroup = document.getElementById('credit-limit-group');
+    if (clGroup) clGroup.style.display = isVendor ? 'none' : '';
+    const arGroup = document.getElementById('opening-ar-group');
+    if (arGroup) arGroup.style.display = isVendor ? 'none' : '';
+    const apGroup = document.getElementById('opening-ap-group');
+    if (apGroup) apGroup.style.display = isVendor ? '' : 'none';
+    const vpSec = document.getElementById('vendor-pricelist-section');
+    if (vpSec) vpSec.style.display = isVendor ? '' : 'none';
 }
+
+function addVendorItem() {
+    const idx = viCount++;
+    const body = document.getElementById('vendor-items-body');
+    const opts = vendorProducts.map(p => `<option value="${p.variant_sku}">${p.variant_sku} — ${p.name}</option>`).join('');
+    const tr = document.createElement('tr');
+    tr.id = `vi-row-${idx}`;
+    tr.innerHTML = `
+        <td><select name="vendor_items[${idx}][variant_sku]" class="form-select"><option value="">— Pilih Produk —</option>${opts}</select></td>
+        <td><input type="number" name="vendor_items[${idx}][unit_purchase_price]" class="form-input" value="0" min="0" step="100" style="text-align:right"></td>
+        <td style="text-align:center"><button type="button" class="btn btn-ghost btn-xs" onclick="removeVendorItem(${idx})" style="color:#DC2626" title="Hapus">✕</button></td>`;
+    body.appendChild(tr);
+}
+
+function removeVendorItem(idx) {
+    const row = document.getElementById(`vi-row-${idx}`);
+    if (row && document.querySelectorAll('#vendor-items-body tr').length > 1) {
+        row.remove();
+    }
+}
+
 // Run on load for old() values
 document.addEventListener('DOMContentLoaded', function() {
     const sel = document.querySelector('[name="contact_type"]');

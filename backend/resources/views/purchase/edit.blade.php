@@ -87,11 +87,12 @@
 
                 <div class="form-group">
                     <label class="form-label">Payment Terms <span style="color:#DC2626">*</span></label>
-                    <select name="payment_terms" class="form-select" required>
+                    <select name="payment_terms" id="sel-payment-terms" class="form-select" required>
                         @foreach(['7 hari','14 hari','30 hari','Tunai'] as $t)
                             <option value="{{ $t }}" {{ old('payment_terms', $po->payment_terms) == $t ? 'selected' : '' }}>{{ $t }}</option>
                         @endforeach
                     </select>
+                    <div id="term-policy-hint" style="font-size:11px;color:#6B6560;margin-top:4px"></div>
                 </div>
 
                 <div class="form-group" style="grid-column:1/3">
@@ -128,7 +129,7 @@
                             <td>
                                 <select name="lines[{{ $i }}][variant_sku]" class="form-select sku-sel" data-idx="{{ $i }}" onchange="onSkuChange({{ $i }})">
                                     @foreach($products as $p)
-                                        <option value="{{ $p->variant_sku }}" {{ $line->variant_sku == $p->variant_sku ? 'selected' : '' }}>
+                                        <option value="{{ $p->variant_sku }}" data-std="{{ $p->standard_cost }}" {{ $line->variant_sku == $p->variant_sku ? 'selected' : '' }}>
                                             {{ $p->variant_sku }} — {{ $p->name }}
                                         </option>
                                     @endforeach
@@ -142,8 +143,11 @@
                                 <div style="position:relative">
                                     <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#8A8478;font-size:11px">Rp</span>
                                     <input type="number" name="lines[{{ $i }}][unit_price]" class="form-input price-inp" data-idx="{{ $i }}"
-                                        value="{{ $line->unit_purchase_price }}" min="0" step="100" oninput="recalcLine({{ $i }})" style="padding-left:24px;text-align:right">
+                                        value="{{ $line->unit_purchase_price }}" readonly
+                                        style="padding-left:24px;text-align:right;background:#F5F3EE;color:#6B6560;cursor:not-allowed;-moz-appearance:textfield"
+                                        title="Harga dikunci sesuai pricelist vendor / standard cost produk">
                                 </div>
+                                <div id="price-src-{{ $i }}" style="font-size:10px;color:#8A8478;margin-top:3px;text-align:right">Terkunci sesuai vendor</div>
                             </td>
                             <td style="text-align:right;font-weight:700" id="sub-{{ $i }}">
                                 Rp{{ number_format($line->subtotal, 0, ',', '.') }}
@@ -183,12 +187,20 @@
 @php
 $pricelistJson = \App\Models\VendorPricelist::all()
     ->map(fn($pl) => ['vendor_id' => $pl->vendor_id, 'variant_sku' => $pl->variant_sku, 'unit_purchase_price' => (float) $pl->unit_purchase_price]);
-$productsJson = $products->map(fn($p) => ['variant_sku' => $p->variant_sku, 'name' => $p->name]);
+$productsJson = $products->map(fn($p) => ['variant_sku' => $p->variant_sku, 'name' => $p->name, 'standard_cost' => (float) $p->standard_cost]);
 @endphp
 
 @push('scripts')
+<style>
+.price-inp::-webkit-outer-spin-button,
+.price-inp::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+</style>
 <script>
 const pricelist = @json($pricelistJson);
+const allProducts = @json($productsJson);
 let lineCount = {{ $po->lines->count() }};
 
 function fmt(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
@@ -210,33 +222,105 @@ function recalcTotal() {
         total += qty * price;
     });
     document.getElementById('grand-total').textContent = fmt(total);
+    syncPaymentTermsByTotal(total);
+}
+
+function syncPaymentTermsByTotal(total) {
+    const sel  = document.getElementById('sel-payment-terms');
+    const hint = document.getElementById('term-policy-hint');
+    if (!sel) return;
+
+    let allowed = [];
+    let msg = '';
+    if (total < 3000000) {
+        allowed = ['Tunai'];
+        msg = 'Kebijakan Keuangan: Total < Rp 3.000.000 wajib bayar Tunai (Cash).';
+    } else if (total <= 10000000) {
+        allowed = ['7 hari', '14 hari'];
+        msg = 'Kebijakan Keuangan: Total Rp 3.000.000 – Rp 10.000.000 termin 7–14 hari.';
+    } else {
+        allowed = ['14 hari', '30 hari'];
+        msg = 'Kebijakan Keuangan: Total > Rp 10.000.000 termin 14–30 hari.';
+    }
+
+    Array.from(sel.options).forEach(opt => {
+        if (!opt.value) {
+            opt.disabled = true;
+            return;
+        }
+        opt.disabled = !allowed.includes(opt.value);
+    });
+
+    if (!allowed.includes(sel.value)) {
+        sel.value = allowed[0];
+    }
+    if (hint) hint.textContent = msg;
 }
 
 function onSkuChange(idx) {
     const vendorId = document.getElementById('sel-vendor').value;
-    const sku      = document.querySelector(`.sku-sel[data-idx="${idx}"]`)?.value;
-    const pl = pricelist.find(p => p.vendor_id === vendorId && p.variant_sku === sku);
+    const skuSel   = document.querySelector(`.sku-sel[data-idx="${idx}"]`);
+    const sku      = skuSel?.value;
     const priceInp = document.querySelector(`.price-inp[data-idx="${idx}"]`);
-    if (pl && priceInp) priceInp.value = pl.unit_purchase_price;
+    const srcEl    = document.getElementById(`price-src-${idx}`);
+    if (!sku || !priceInp) {
+        if (priceInp) priceInp.value = 0;
+        if (srcEl) srcEl.textContent = 'Terkunci sesuai vendor';
+        recalcLine(idx);
+        return;
+    }
+    const pl = pricelist.find(p => p.vendor_id === vendorId && p.variant_sku === sku);
+    if (pl) {
+        priceInp.value = pl.unit_purchase_price;
+        if (srcEl) srcEl.textContent = 'Harga Pricelist Vendor';
+    } else {
+        const stdCost = parseFloat(skuSel.selectedOptions[0]?.dataset?.std || 0);
+        priceInp.value = stdCost;
+        if (srcEl) srcEl.textContent = 'Standard Cost Produk';
+    }
     recalcLine(idx);
 }
 
+function buildProductOptions(vendorId, currentSku = '') {
+    if (!vendorId) {
+        return '<option value="">Pilih vendor terlebih dahulu...</option>';
+    }
+    const vendorSkus = new Set(pricelist.filter(p => p.vendor_id === vendorId).map(p => p.variant_sku));
+    const filtered = allProducts.filter(p => vendorSkus.has(p.variant_sku));
+    if (filtered.length === 0) {
+        return '<option value="">Vendor ini belum memiliki produk terdaftar</option>';
+    }
+    return '<option value="">Pilih produk...</option>' + filtered.map(p => {
+        const sel = (currentSku && currentSku === p.variant_sku) ? 'selected' : '';
+        return `<option value="${p.variant_sku}" data-std="${p.standard_cost}" ${sel}>${p.variant_sku} — ${p.name}</option>`;
+    }).join('');
+}
+
 function prefillPrices() {
-    document.querySelectorAll('#lines-body tr').forEach(row => onSkuChange(row.dataset.idx));
+    const vendorId = document.getElementById('sel-vendor').value;
+    document.querySelectorAll('#lines-body tr').forEach(row => {
+        const idx = row.dataset.idx;
+        const skuSel = document.querySelector(`.sku-sel[data-idx="${idx}"]`);
+        if (skuSel) {
+            const prevSku = skuSel.value;
+            skuSel.innerHTML = buildProductOptions(vendorId, prevSku);
+        }
+        onSkuChange(idx);
+    });
 }
 
 function addLine() {
-    const idx  = lineCount++;
-    const body = document.getElementById('lines-body');
-    const products = @json($productsJson);
-    const opts = products.map(p => `<option value="${p.variant_sku}">${p.variant_sku} — ${p.name}</option>`).join('');
+    const idx      = lineCount++;
+    const body     = document.getElementById('lines-body');
+    const vendorId = document.getElementById('sel-vendor').value;
+    const opts     = buildProductOptions(vendorId, '');
     const tr = document.createElement('tr');
     tr.id = `line-row-${idx}`;
     tr.dataset.idx = idx;
     tr.innerHTML = `
-        <td><select name="lines[${idx}][variant_sku]" class="form-select sku-sel" data-idx="${idx}" onchange="onSkuChange(${idx})"><option value="">Pilih produk...</option>${opts}</select></td>
+        <td><select name="lines[${idx}][variant_sku]" class="form-select sku-sel" data-idx="${idx}" onchange="onSkuChange(${idx})">${opts}</select></td>
         <td><input type="number" name="lines[${idx}][qty]" class="form-input qty-inp" data-idx="${idx}" value="1" min="1" step="1" oninput="recalcLine(${idx})" style="text-align:right"></td>
-        <td><div style="position:relative"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#8A8478;font-size:11px">Rp</span><input type="number" name="lines[${idx}][unit_price]" class="form-input price-inp" data-idx="${idx}" value="0" min="0" step="100" oninput="recalcLine(${idx})" style="padding-left:24px;text-align:right"></div></td>
+        <td><div style="position:relative"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#8A8478;font-size:11px">Rp</span><input type="number" name="lines[${idx}][unit_price]" class="form-input price-inp" data-idx="${idx}" value="0" readonly style="padding-left:24px;text-align:right;background:#F5F3EE;color:#6B6560;cursor:not-allowed;-moz-appearance:textfield" title="Harga dikunci sesuai pricelist vendor / standard cost produk"></div><div id="price-src-${idx}" style="font-size:10px;color:#8A8478;margin-top:3px;text-align:right">Terkunci sesuai vendor</div></td>
         <td style="text-align:right;font-weight:700" id="sub-${idx}">Rp 0</td>
         <td style="text-align:center"><button type="button" class="btn btn-ghost btn-xs" onclick="removeLine(${idx})" style="color:#DC2626"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></td>`;
     body.appendChild(tr);
@@ -248,7 +332,7 @@ function removeLine(idx) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('#lines-body tr').forEach(row => recalcLine(row.dataset.idx));
+    prefillPrices();
 });
 </script>
 @endpush
