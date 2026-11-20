@@ -43,7 +43,7 @@
 <form method="POST" action="{{ route('sales.quotations.store') }}" id="quotationForm">
     @csrf
     @if(isset($fromLead) && $fromLead)
-    <input type="hidden" name="crm_lead_id" value="{{ $fromLead->id }}">
+    <input type="hidden" name="crm_lead_id" value="{{ $fromLead->lead_id }}">
     @endif
 
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
@@ -59,7 +59,7 @@
                             <select name="customer_id" class="form-input" style="appearance:none" required>
                                 <option value="">— Select customer —</option>
                                 @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}" {{ old('customer_id', isset($preCustomer) ? $preCustomer->id : '') == $customer->id ? 'selected' : '' }}>
+                                <option value="{{ $customer->contact_id }}" {{ old('customer_id', isset($preCustomer) ? $preCustomer : '') == $customer->contact_id ? 'selected' : '' }}>
                                     {{ $customer->name }}{{ $customer->city ? ' – '.$customer->city : '' }}
                                 </option>
                                 @endforeach
@@ -84,7 +84,7 @@
                             <select name="crm_lead_id" class="form-input" style="appearance:none">
                                 <option value="">— No lead reference —</option>
                                 @foreach($leads as $lead)
-                                <option value="{{ $lead->id }}" {{ old('crm_lead_id', isset($fromLead) ? $fromLead->id : '') == $lead->id ? 'selected' : '' }}>
+                                <option value="{{ $lead->lead_id }}" {{ old('crm_lead_id', isset($fromLead) ? $fromLead->lead_id : '') == $lead->lead_id ? 'selected' : '' }}>
                                     {{ $lead->lead_id }} – {{ $lead->name }}
                                 </option>
                                 @endforeach
@@ -147,10 +147,10 @@
                             <tr data-line="0">
                                 <td style="color:#B8B2A6;font-size:12px">1</td>
                                 <td>
-                                    <select name="lines[0][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px">
+                                    <select name="lines[0][variant_sku]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px">
                                         <option value="">— Select product —</option>
                                         @foreach($products as $product)
-                                        <option value="{{ $product->id }}" data-price="{{ $product->sales_price ?? 0 }}">{{ $product->name }}</option>
+                                        <option value="{{ $product->variant_sku }}" data-price="{{ $product->sales_price ?? 0 }}">{{ $product->name }} ({{ $product->variant_sku }})</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -287,7 +287,7 @@
         tr.innerHTML = `
             <td style="color:#B8B2A6;font-size:12px">${tbody.children.length + 1}</td>
             <td>
-                <select name="lines[${idx}][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px">
+                <select name="lines[${idx}][variant_sku]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:5px 8px">
                     <option value="">— Select product —</option>
                     ${Array.from(document.querySelector('.product-select').options).slice(1).map(o =>
                         `<option value="${o.value}" data-price="${o.dataset.price}">${o.text}</option>`

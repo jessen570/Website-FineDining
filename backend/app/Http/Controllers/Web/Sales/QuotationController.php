@@ -175,8 +175,9 @@ class QuotationController extends Controller
         $customers  = Contact::where('contact_type', 'Customer')->orderBy('name')->get();
         $products   = Product::orderBy('variant_sku')->get();
         $salesUsers = User::whereIn('role', ['owner', 'finance', 'server'])->orderBy('name')->get();
+        $leads      = CrmLead::where('is_converted', true)->orderByDesc('id')->get();
 
-        return view('sales.quotations.edit', compact('quotation', 'customers', 'products', 'salesUsers'));
+        return view('sales.quotations.edit', compact('quotation', 'customers', 'products', 'salesUsers', 'leads'));
     }
 
     public function update(Request $request, string $id)

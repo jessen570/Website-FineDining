@@ -78,12 +78,23 @@
 
             {{-- Actions --}}
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-                <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('dashboard') }}"
-                   style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;
-                          background:#F7F5F0;border:1px solid #DDD8CC;color:#4D4944;font-size:13px;
-                          font-weight:600;text-decoration:none">
-                    ← Kembali
-                </a>
+                @auth
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                       style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;
+                              background:#F7F5F0;border:1px solid #DDD8CC;color:#4D4944;font-size:13px;
+                              font-weight:600;cursor:pointer">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        Ganti Akun
+                    </button>
+                </form>
+                @endauth
                 <a href="{{ route('dashboard') }}"
                    style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;
                           background:#18382E;color:white;font-size:13px;font-weight:600;text-decoration:none">

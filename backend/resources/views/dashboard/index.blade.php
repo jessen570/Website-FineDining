@@ -5,36 +5,58 @@
 @section('content')
 
 {{-- 1. Page Header & Greeting --}}
-<div class="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 bg-gradient-to-r from-white via-white to-stone-50/80 p-4 sm:p-6 rounded-2xl border border-[#E8E4DA] shadow-xs">
+<div class="mb-8 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-gradient-to-r from-white via-white to-stone-50/80 p-4 sm:p-6 rounded-2xl border border-[#E8E4DA] shadow-xs">
     <div class="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0">
         <img src="{{ asset('images/logo-icon.jpg') }}" alt="Maison Aster" class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover border border-[#C6A76B]/40 shadow-sm flex-shrink-0">
         <div class="min-w-0 flex-1">
             @php
-                $hour = (int) now()->format('H');
+                $now = now('Asia/Jakarta');
+                $hour = (int) $now->format('H');
                 $greeting = $hour < 11 ? 'Selamat Pagi' : ($hour < 15 ? 'Selamat Siang' : ($hour < 18 ? 'Selamat Sore' : 'Selamat Malam'));
                 $days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
                 $months = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-                $dateIndo = $days[now()->dayOfWeek] . ', ' . now()->format('d') . ' ' . $months[now()->month] . ' ' . now()->format('Y');
+                $dateIndo = $days[$now->dayOfWeek] . ', ' . $now->format('d') . ' ' . $months[$now->month] . ' ' . $now->format('Y');
+                $uRole = strtolower(auth()->user()->role ?? '');
+                $isExecOrSales = in_array($uRole, ['owner', 'finance', 'host']);
+                $isStockRole   = in_array($uRole, ['owner', 'finance', 'warehouse', 'procurement']);
+                $roleBadge = match($uRole) {
+                    'owner'       => 'Ringkasan Eksekutif',
+                    'finance'     => 'Dashboard Finance',
+                    'host'        => 'Dashboard Host & CRM',
+                    'cashier'     => 'Dashboard Kasir',
+                    'server'      => 'Dashboard Pelayan (Server)',
+                    'warehouse'   => 'Dashboard Gudang',
+                    'procurement' => 'Dashboard Pengadaan',
+                    default       => 'Dashboard Operasional',
+                };
+                $roleSubtitle = match($uRole) {
+                    'owner'       => 'Ringkasan Kinerja Penjualan, Operasional & Audit',
+                    'finance'     => 'Ringkasan Keuangan, Penjualan & Faktur',
+                    'host'        => 'Reservasi Meja, Prospek & Pelanggan',
+                    'cashier'     => 'Pesanan Meja, Faktur & Pembayaran',
+                    'server'      => 'Pesanan Meja & Layanan Restoran',
+                    'warehouse'   => 'Persediaan Stok, Mutasi & Surat Jalan',
+                    'procurement' => 'Purchase Order & Penerimaan Barang',
+                    default       => 'Ringkasan Operasional Maison Aster',
+                };
             @endphp
             <div class="mb-1">
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#18382E]/10 text-[#18382E] border border-[#18382E]/20 mb-1">
-                    Ringkasan Eksekutif
+                    {{ $roleBadge }}
                 </span>
                 <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight leading-tight" style="font-family:'Playfair Display',serif">
                     {{ $greeting }}, {{ auth()->user()->name }}
                 </h1>
             </div>
-            <p class="text-xs sm:text-sm text-gray-600 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span>Ringkasan Kinerja Penjualan & CRM</span>
-                <span class="text-gray-300 hidden sm:inline">•</span>
-                <span class="text-gray-500 block sm:inline">{{ $dateIndo }}</span>
+            <p class="text-xs sm:text-sm text-gray-600 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span>{{ $roleSubtitle }}</span>
+                <span class="text-gray-400">· {{ $dateIndo }}</span>
             </p>
         </div>
     </div>
 
     {{-- Quick Action Buttons (sesuai peran) --}}
-    @php $uRole = strtolower(auth()->user()->role ?? ''); @endphp
-    <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-100 w-full lg:w-auto">
+    <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 pt-3 xl:pt-0 border-t xl:border-t-0 border-gray-100 w-full xl:w-auto xl:flex-shrink-0">
         @if(in_array($uRole, ['owner', 'host', 'finance']))
         <a href="{{ route('crm.leads.create') }}" class="btn btn-outline justify-center text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5 rounded-lg font-medium shadow-xs hover:border-[#C6A76B] transition-colors">
             <i data-lucide="user-plus" class="w-4 h-4 text-[#18382E]"></i>
@@ -86,17 +108,18 @@
     </div>
 </div>
 
-{{-- 2. Five Primary KPI Cards --}}
+{{-- 2. Primary KPI Cards (disesuaikan per role) --}}
 <div class="mb-8">
     <div class="flex items-center justify-between mb-3.5">
         <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Indikator Kinerja Utama (KPI)</h2>
         <span class="text-xs text-gray-400 hidden sm:inline">Pembaruan otomatis saat data berubah</span>
     </div>
 
-    {{-- Inventory & Financial KPIs (SR-19 / T-35 / T-36) --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5">
-
-        {{-- Stok Total (semua role lihat) --}}
+    {{-- Inventory & Financial KPIs (sesuai role) --}}
+    @if($isStockRole || $canViewFinancials)
+    <div class="grid grid-cols-2 {{ $canViewFinancials ? 'sm:grid-cols-4' : 'sm:grid-cols-2' }} gap-3 sm:gap-4 mb-5">
+        @if($isStockRole)
+        {{-- Stok Total --}}
         <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
             <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Stok Total</div>
             <div class="text-2xl font-bold text-gray-900">{{ number_format($totalStockUnits) }}</div>
@@ -104,14 +127,15 @@
             <div class="text-xs font-semibold mt-1" style="color:#18382E">Tersedia: {{ number_format($totalAvailableUnits) }} unit</div>
         </div>
 
-        {{-- Nilai Persediaan (semua role lihat) --}}
+        {{-- Nilai Persediaan --}}
         <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
             <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nilai Persediaan</div>
             <div class="text-xl font-bold text-gray-900" style="font-size:1.1rem">Rp {{ number_format($totalStockValue, 0, ',', '.') }}</div>
             <div class="text-xs text-gray-500 mt-1">Standard Cost valuation</div>
         </div>
+        @endif
 
-        {{-- AR — hanya finance/owner (SR-14/T-36) --}}
+        {{-- AR & AP — hanya finance/owner --}}
         @if($canViewFinancials)
         <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
             <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Piutang (AR)</div>
@@ -119,32 +143,18 @@
             <div class="text-xs text-gray-500 mt-1">Termasuk saldo awal</div>
         </div>
 
-        {{-- AP — hanya finance/owner (SR-14/T-36) --}}
         <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs">
             <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Utang (AP)</div>
             <div class="text-xl font-bold" style="color:#DC2626;font-size:1.1rem">Rp {{ number_format($totalAP, 0, ',', '.') }}</div>
             <div class="text-xs text-gray-500 mt-1">Termasuk saldo awal</div>
         </div>
-        @else
-        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs" style="border-style:dashed">
-            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Piutang (AR)</div>
-            <div style="display:flex;align-items:center;gap:6px">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B2A6" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span style="font-size:12px;color:#B8B2A6">Hanya Finance/Owner (SR-14)</span>
-            </div>
-        </div>
-        <div class="bg-white rounded-xl border border-[#E8E4DA] p-4 shadow-xs" style="border-style:dashed">
-            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Utang (AP)</div>
-            <div style="display:flex;align-items:center;gap:6px">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8B2A6" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span style="font-size:12px;color:#B8B2A6">Hanya Finance/Owner (SR-14)</span>
-            </div>
-        </div>
         @endif
     </div>
+    @endif
 
-    {{-- Responsive 5-Column Grid --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+    @if($isExecOrSales)
+    {{-- Responsive 3-Column Grid (khusus Owner, Finance, Host) --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
         {{-- Card 1: Total Leads --}}
         <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
@@ -241,7 +251,7 @@
         </div>
 
         {{-- Card 5: Pipeline Value --}}
-        <div class="bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+        <div class="sm:col-span-2 lg:col-span-2 bg-white rounded-xl border border-[#E8E4DA] p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
             <div class="flex items-start justify-between mb-4">
                 <div>
                     <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nilai Pipeline</span>
@@ -382,21 +392,21 @@
 </div>
 
 {{-- 4. Activity & Actions Section (3 Columns on Desktop, Responsive Stacking) --}}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-start">
 
     {{-- 4A: Recent Sales Orders --}}
-    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
-        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-green-50 text-green-700 flex items-center justify-center">
+    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col overflow-hidden">
+        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-green-50 text-green-700 flex items-center justify-center flex-shrink-0">
                     <i data-lucide="shopping-cart" class="w-4 h-4"></i>
                 </div>
-                <div>
-                    <h3 class="text-sm font-bold text-gray-900">Pesanan Penjualan Terbaru</h3>
-                    <p class="text-2xs text-gray-500">Transaksi terakhir yang dicatat</p>
+                <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-gray-900 truncate">Pesanan Terbaru</h3>
+                    <p class="text-2xs text-gray-500 truncate">Transaksi terakhir dicatat</p>
                 </div>
             </div>
-            <a href="{{ route('sales.orders.index') }}" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A]">
+            <a href="{{ route('sales.orders.index') }}" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A] whitespace-nowrap flex-shrink-0">
                 Lihat Semua →
             </a>
         </div>
@@ -445,18 +455,18 @@
     </div>
 
     {{-- 4B: Recent CRM Leads --}}
-    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
-        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
+    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col overflow-hidden">
+        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0">
                     <i data-lucide="user-plus" class="w-4 h-4"></i>
                 </div>
-                <div>
-                    <h3 class="text-sm font-bold text-gray-900">Prospek Terbaru</h3>
-                    <p class="text-2xs text-gray-500">Kontak prospek masuk</p>
+                <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-gray-900 truncate">Prospek Terbaru</h3>
+                    <p class="text-2xs text-gray-500 truncate">Kontak prospek masuk</p>
                 </div>
             </div>
-            <a href="{{ route('crm.leads.index') }}" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A]">
+            <a href="{{ route('crm.leads.index') }}" class="text-xs font-semibold text-[#C6A76B] hover:text-[#96703A] whitespace-nowrap flex-shrink-0">
                 Lihat Semua →
             </a>
         </div>
@@ -498,7 +508,7 @@
                         <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border {{ $leadBadge }}">
                             {{ $stageLabel }}
                         </span>
-                        <span class="text-2xs text-gray-400 block mt-1">{{ $lead->created_at ? $lead->created_at->diffForHumans() : '' }}</span>
+                        <span class="text-2xs text-gray-400 block mt-1 whitespace-nowrap">{{ $lead->created_at ? $lead->created_at->locale('id')->diffForHumans() : '' }}</span>
                     </div>
                 </a>
             @empty
@@ -511,20 +521,20 @@
     </div>
 
     {{-- 4C: Pending Actions & Alerts --}}
-    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col justify-between overflow-hidden">
-        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+    <div class="bg-white rounded-xl border border-[#E8E4DA] shadow-xs flex flex-col overflow-hidden">
+        <div class="p-5 border-b border-[#F0EEE8] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
                     <i data-lucide="bell" class="w-4 h-4"></i>
                 </div>
-                <div>
-                    <h3 class="text-sm font-bold text-gray-900">Tindakan Tertunda & Peringatan</h3>
-                    <p class="text-2xs text-gray-500">Perhatian manajerial yang diperlukan</p>
+                <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-gray-900 truncate">Perlu Perhatian</h3>
+                    <p class="text-2xs text-gray-500 truncate">Tindakan &amp; peringatan</p>
                 </div>
             </div>
             @php $totalAlerts = $pendingApprovals + $overCreditLimit + $draftQuotations; @endphp
             @if($totalAlerts > 0)
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap flex-shrink-0">
                     {{ $totalAlerts }} Perhatian
                 </span>
             @endif
@@ -594,7 +604,7 @@
         </div>
 
         <div class="px-5 py-3.5 bg-gray-50/70 border-t border-[#F0EEE8] flex items-center justify-between text-xs text-gray-500">
-            <span>Kontrol Risiko Kredit & Otomasi</span>
+            <span>Kontrol Risiko Kredit &amp; Otomasi</span>
             <a href="{{ route('sales.credit.index') }}" class="text-[#C6A76B] hover:text-[#96703A] font-semibold">
                 Pusat Kontrol Kredit →
             </a>
@@ -602,6 +612,125 @@
     </div>
 
 </div>
+@else
+    {{-- Panel Operasional Khusus Peran (Server, Cashier, Warehouse, Procurement) --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+        @if($uRole === 'server')
+            <a href="{{ route('table-orders.create') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-[#18382E] text-[#C6A76B] flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="utensils" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Buat Pesanan Meja</h3>
+                    <p class="text-xs text-gray-500 mt-1">Catat pesanan tamu baru dan kirim ke dapur / bar.</p>
+                </div>
+            </a>
+            <a href="{{ route('table-orders.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Daftar Pesanan Meja</h3>
+                    <p class="text-xs text-gray-500 mt-1">Pantau status pesanan aktif, tambah item, dan tandai sudah disajikan.</p>
+                </div>
+            </a>
+            <a href="{{ route('products.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Menu &amp; Produk</h3>
+                    <p class="text-xs text-gray-500 mt-1">Lihat daftar menu fine dining, harga, dan ketersediaan.</p>
+                </div>
+            </a>
+        @elseif($uRole === 'cashier')
+            <a href="{{ route('table-orders.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-[#18382E] text-[#C6A76B] flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="utensils" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Pesanan Meja / POS</h3>
+                    <p class="text-xs text-gray-500 mt-1">Proses split bill dan buat tagihan meja tamu.</p>
+                </div>
+            </a>
+            <a href="{{ route('invoices.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Faktur &amp; Pembayaran</h3>
+                    <p class="text-xs text-gray-500 mt-1">Terbitkan faktur dan catat pelunasan pembayaran tamu.</p>
+                </div>
+            </a>
+            <a href="{{ route('sales.customers.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Kontak &amp; Pelanggan</h3>
+                    <p class="text-xs text-gray-500 mt-1">Kelola data pelanggan untuk transaksi dan faktur.</p>
+                </div>
+            </a>
+        @elseif($uRole === 'warehouse')
+            <a href="{{ route('inventory.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-[#18382E] text-[#C6A76B] flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="boxes" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Persediaan Stok</h3>
+                    <p class="text-xs text-gray-500 mt-1">Pantau stok fisik, stok reserved, dan lokasi gudang.</p>
+                </div>
+            </a>
+            <a href="{{ route('inventory.transfer.create') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="repeat" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Mutasi &amp; Transfer Stok</h3>
+                    <p class="text-xs text-gray-500 mt-1">Catat pemindahan stok antar gudang, bar, dan dapur.</p>
+                </div>
+            </a>
+            <a href="{{ route('inventory.deliveries') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="truck" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Surat Jalan (DO)</h3>
+                    <p class="text-xs text-gray-500 mt-1">Validasi pengiriman pesanan dan penerimaan barang PO.</p>
+                </div>
+            </a>
+        @elseif($uRole === 'procurement')
+            <a href="{{ route('purchase.create') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-[#18382E] text-[#C6A76B] flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Buat Purchase Order</h3>
+                    <p class="text-xs text-gray-500 mt-1">Ajukan pengadaan bahan baku dan minuman ke supplier.</p>
+                </div>
+            </a>
+            <a href="{{ route('purchase.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="package-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Daftar Purchase Order</h3>
+                    <p class="text-xs text-gray-500 mt-1">Pantau status PO, konfirmasi, dan penerimaan barang.</p>
+                </div>
+            </a>
+            <a href="{{ route('contacts.index') }}" class="bg-white rounded-xl border border-[#E8E4DA] p-5 shadow-xs hover:shadow-md hover:border-[#C6A76B] transition-all flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Kontak &amp; Supplier</h3>
+                    <p class="text-xs text-gray-500 mt-1">Kelola daftar vendor dan pemasok restoran.</p>
+                </div>
+            </a>
+        @endif
+    </div>
+</div>
+@endif
 
 @endsection
 

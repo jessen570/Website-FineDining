@@ -343,9 +343,34 @@ class SalesOrderController extends Controller
                 }
             }
 
+            // Auto-create Delivery Order
+            $doSeq = \App\Models\DeliveryOrder::max('id') + 1;
+            $doId  = 'WH/OUT/' . str_pad($doSeq, 4, '0', STR_PAD_LEFT);
+
+            $deliveryOrder = \App\Models\DeliveryOrder::create([
+                'delivery_id'        => $doId,
+                'sales_order_id'     => $order->order_id,
+                'status'             => 'Ready',
+                'delivery_date'      => now()->addDay()->toDateString(),
+                'cost_of_goods_sold' => 0,
+                'is_posted'          => false,
+            ]);
+
+            foreach ($order->lines as $line) {
+                \App\Models\DeliveryOrderLine::create([
+                    'delivery_id'   => $doId,
+                    'variant_sku'   => $line->variant_sku,
+                    'ordered_qty'   => $line->ordered_qty,
+                    'delivered_qty' => 0,
+                    'backorder_qty' => 0,
+                    'standard_cost' => \App\Models\Product::where('variant_sku', $line->variant_sku)->value('standard_cost') ?? 0,
+                    'subtotal_cogs' => 0,
+                ]);
+            }
+
             AuditLog::log('CONFIRM', 'SalesOrder', $order->order_id, null,
-                ['status' => 'Draft'], ['status' => 'Confirmed', 'is_locked' => true],
-                "SO {$order->order_id} dikonfirmasi.", Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'user');
+                ['status' => 'Draft'], ['status' => 'Confirmed', 'is_locked' => true, 'delivery_order' => $doId],
+                "SO {$order->order_id} dikonfirmasi. DO {$doId} dibuat otomatis.", Auth::user()?->name ?? 'System', Auth::user()?->role ?? 'user');
         });
 
         return redirect()->route('sales.orders.show', $id)

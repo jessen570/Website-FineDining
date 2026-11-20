@@ -39,7 +39,7 @@ class ReportingController extends Controller
         // ── By Month (last 6 months) ──────────────────────────────────────
         $byMonth = SalesOrder::whereIn('status', ['Confirmed', 'Done'])
             ->where('order_date', '>=', now()->subMonths(6)->toDateString())
-            ->selectRaw("DATE_FORMAT(order_date, '%Y-%m') as month, COUNT(*) as count, SUM(gross_amount) as total")
+            ->selectRaw("strftime('%Y-%m', order_date) as month, COUNT(*) as count, SUM(gross_amount) as total")
             ->groupBy('month')
             ->orderBy('month')
             ->get();
