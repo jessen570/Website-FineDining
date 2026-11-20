@@ -36,11 +36,11 @@
                     @if($po->is_locked)
                         <span class="badge b-amber">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            Terkunci · SR-18
+                            Terkunci
                         </span>
                     @endif
                 </div>
-                <p class="page-desc">{{ $po->vendor?->name }} · {{ $po->order_date?->format('d M Y') }} · F-12, F-13</p>
+                <p class="page-desc">{{ $po->vendor?->name }} · {{ $po->order_date?->format('d M Y') }}</p>
             </div>
         </div>
 
@@ -48,7 +48,7 @@
             @if($po->status === 'RFQ' && in_array(auth()->user()->role, ['owner','procurement']))
                 <form method="POST" action="{{ route('purchase.confirm', $po->po_id) }}">
                     @csrf
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Konfirmasi PO ini? PO akan dikunci dan tidak dapat diedit (SR-18).')">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Konfirmasi PO ini? PO akan dikunci dan tidak dapat diedit.')">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         Konfirmasi PO
                     </button>

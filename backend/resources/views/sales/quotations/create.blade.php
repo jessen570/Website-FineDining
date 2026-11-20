@@ -133,12 +133,12 @@
                             <tr>
                                 <th style="width:30px">#</th>
                                 <th style="min-width:180px">Product</th>
-                                <th style="width:70px;text-align:right">Qty</th>
-                                <th style="width:120px;text-align:right">Unit Price</th>
-                                <th style="width:70px;text-align:right">Disc%</th>
-                                <th style="width:110px;text-align:right">Subtotal</th>
-                                <th style="width:100px;text-align:right">PBJT</th>
-                                <th style="width:110px;text-align:right">Total</th>
+                                <th style="width:80px;text-align:right">Qty</th>
+                                <th style="width:130px;text-align:right">Unit Price</th>
+                                <th style="width:80px;text-align:right">Disc%</th>
+                                <th style="width:120px;text-align:right">Subtotal</th>
+                                <th style="width:110px;text-align:right">PBJT</th>
+                                <th style="width:120px;text-align:right">Total</th>
                                 <th style="width:40px"></th>
                             </tr>
                         </thead>
@@ -154,9 +154,9 @@
                                         @endforeach
                                     </select>
                                 </td>
-                                <td><input type="number" name="lines[0][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="1" min="1"></td>
-                                <td><input type="number" name="lines[0][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0"></td>
-                                <td><input type="number" name="lines[0][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0" max="100"></td>
+                                <td><input type="number" name="lines[0][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px;width:100%;min-width:60px" value="1" min="1"></td>
+                                <td><input type="number" name="lines[0][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px;width:100%;min-width:90px" value="0" min="0"></td>
+                                <td><input type="number" name="lines[0][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px;width:100%;min-width:55px" value="0" min="0" max="100"></td>
                                 <td style="text-align:right;font-size:12.5px" class="line-subtotal">Rp 0</td>
                                 <td style="text-align:right;font-size:12.5px;color:#6B6560" class="line-pbjt">Rp 0</td>
                                 <td style="text-align:right;font-size:13px;font-weight:700" class="line-total">Rp 0</td>
@@ -294,9 +294,9 @@
                     ).join('')}
                 </select>
             </td>
-            <td><input type="number" name="lines[${idx}][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="1" min="1"></td>
-            <td><input type="number" name="lines[${idx}][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0"></td>
-            <td><input type="number" name="lines[${idx}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px" value="0" min="0" max="100"></td>
+            <td><input type="number" name="lines[${idx}][quantity]" class="form-input qty-input" style="text-align:right;padding:5px 8px;font-size:12.5px;width:100%;min-width:60px" value="1" min="1"></td>
+            <td><input type="number" name="lines[${idx}][unit_price]" class="form-input price-input" style="text-align:right;padding:5px 8px;font-size:12.5px;width:100%;min-width:90px" value="0" min="0"></td>
+            <td><input type="number" name="lines[${idx}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:5px 8px;font-size:12.5px;width:100%;min-width:55px" value="0" min="0" max="100"></td>
             <td style="text-align:right;font-size:12.5px" class="line-subtotal">Rp 0</td>
             <td style="text-align:right;font-size:12.5px;color:#6B6560" class="line-pbjt">Rp 0</td>
             <td style="text-align:right;font-size:13px;font-weight:700" class="line-total">Rp 0</td>

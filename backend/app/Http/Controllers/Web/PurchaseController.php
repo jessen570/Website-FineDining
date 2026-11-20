@@ -117,7 +117,7 @@ class PurchaseController extends Controller
             ->where(fn($q) => $q->where('po_id', $id)->orWhere('id', $id))
             ->firstOrFail();
         if ($po->is_locked) {
-            return redirect()->route('purchase.show', $po->po_id)->with('error', 'PO yang sudah dikonfirmasi tidak dapat diedit (SR-18).');
+            return redirect()->route('purchase.show', $po->po_id)->with('error', 'PO yang sudah dikonfirmasi tidak dapat diedit.');
         }
         $vendors  = Contact::where('contact_type', 'Vendor')->orderBy('name')->get();
         $products = Product::orderBy('variant_sku')->get();
@@ -128,7 +128,7 @@ class PurchaseController extends Controller
     {
         $po = PurchaseOrder::where(fn($q) => $q->where('po_id', $id)->orWhere('id', $id))->firstOrFail();
         if ($po->is_locked) {
-            return back()->with('error', 'PO yang sudah dikonfirmasi tidak dapat diedit (SR-18).');
+            return back()->with('error', 'PO yang sudah dikonfirmasi tidak dapat diedit.');
         }
 
         $request->validate([
