@@ -47,7 +47,7 @@
                             <select name="customer_id" class="form-input" style="appearance:none" required>
                                 <option value="">— Select customer —</option>
                                 @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}" {{ old('customer_id', isset($preCustomer) ? $preCustomer->id : '') == $customer->id ? 'selected' : '' }}>
+                                <option value="{{ $customer->contact_id }}" {{ old('customer_id', $preCustomer ?? '') == $customer->contact_id ? 'selected' : '' }}>
                                     {{ $customer->name }}{{ $customer->city ? ' – '.$customer->city : '' }}
                                 </option>
                                 @endforeach
@@ -114,15 +114,17 @@
                             <tr data-line="0">
                                 <td style="color:#B8B2A6;font-size:12px;padding:8px 6px">1</td>
                                 <td style="padding:8px 6px">
-                                    <select name="lines[0][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px">
+                                    <select name="lines[0][variant_sku]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px">
                                         <option value="">— Select product —</option>
                                         @foreach($products as $product)
-                                        <option value="{{ $product->id }}" data-price="{{ $product->sales_price ?? 0 }}">{{ $product->name }}</option>
+                                        <option value="{{ $product->variant_sku }}" data-price="{{ $product->sales_price ?? 0 }}">
+                                            {{ $product->variant_sku }} — {{ $product->name }}
+                                        </option>
                                         @endforeach
                                     </select>
                                 </td>
-                                <td style="padding:8px 6px"><input type="number" name="lines[0][quantity]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="1" min="1"></td>
-                                <td style="padding:8px 6px"><input type="number" name="lines[0][unit_price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="0" min="0"></td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[0][qty]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="1" min="1"></td>
+                                <td style="padding:8px 6px"><input type="number" name="lines[0][price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="0" min="0"></td>
                                 <td style="padding:8px 6px"><input type="number" name="lines[0][discount_percent]" class="form-input disc-input" style="text-align:right;padding:6px 6px;font-size:13px;min-width:65px;width:100%" value="0" min="0" max="100"></td>
                                 <td style="text-align:right;font-size:12.5px;padding:8px 6px" class="line-subtotal">Rp 0</td>
                                 <td style="text-align:right;font-size:12.5px;color:#6B6560;padding:8px 6px" class="line-pbjt">Rp 0</td>
@@ -242,9 +244,9 @@
         const opts = Array.from(document.querySelector('.product-select').options).slice(1)
             .map(o => `<option value="${o.value}" data-price="${o.dataset.price}">${o.text}</option>`).join('');
         tr.innerHTML = `<td style="color:#B8B2A6;font-size:12px;padding:8px 6px">${tbody.children.length+1}</td>
-            <td style="padding:8px 6px"><select name="lines[${idx}][product_id]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px"><option value="">— Select product —</option>${opts}</select></td>
-            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][quantity]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="1" min="1"></td>
-            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][unit_price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="0" min="0"></td>
+            <td style="padding:8px 6px"><select name="lines[${idx}][variant_sku]" class="form-input product-select" style="appearance:none;font-size:12.5px;padding:6px 8px"><option value="">— Select product —</option>${opts}</select></td>
+            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][qty]" class="form-input qty-input" style="text-align:center;padding:6px 4px;font-size:13.5px;font-weight:600;min-width:80px;width:100%" value="1" min="1"></td>
+            <td style="padding:8px 6px"><input type="number" name="lines[${idx}][price]" class="form-input price-input" style="text-align:right;padding:6px 8px;font-size:13.5px;min-width:120px;width:100%" value="0" min="0"></td>
             <td style="padding:8px 6px"><input type="number" name="lines[${idx}][discount_percent]" class="form-input disc-input" style="text-align:right;padding:6px 6px;font-size:13px;min-width:65px;width:100%" value="0" min="0" max="100"></td>
             <td style="text-align:right;font-size:12.5px;padding:8px 6px" class="line-subtotal">Rp 0</td>
             <td style="text-align:right;font-size:12.5px;color:#6B6560;padding:8px 6px" class="line-pbjt">Rp 0</td>
